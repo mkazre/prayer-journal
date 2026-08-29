@@ -10,7 +10,7 @@ class EnrollmentModel extends Model
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
-    protected $allowedFields    = ['course_id', 'user_id', 'status', 'progress_percent', 'enrolled_at', 'completed_at'];
+    protected $allowedFields    = ['course_id', 'user_id', 'status', 'progress_percent', 'last_lesson_id', 'enrolled_at', 'completed_at'];
 
     public function enroll(int $courseId, int $userId): array
     {

@@ -111,6 +111,7 @@ class Filters extends BaseFilters
      * @var array<string, array<string, list<string>>>
      */
     public array $filters = [
-        'tokens' => ['before' => ['api/*']],
+        // 'tokens' is applied per-route-group in Routes.php instead of
+        // blanket api/*, since api/v1/auth/* must stay open (no token yet).
     ];
 }
