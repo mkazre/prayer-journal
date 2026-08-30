@@ -27,7 +27,7 @@ class ImportPrayerJournal extends BaseCommand
 
     public function run(array $params)
     {
-        $path = $params[0] ?? 'C:\Users\Mkhaliphi.Mnguni\OneDrive - Smollan\Desktop\Sites\Nomvula\FINAL PRAYER JOURNAL 13 SEPTEMBER 2024.pdf';
+        $path = $params[0] ?? APPPATH . 'Database/Data/prayer-journal.pdf';
 
         if (! is_file($path)) {
             CLI::error("File not found: {$path}");
