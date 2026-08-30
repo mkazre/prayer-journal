@@ -66,8 +66,10 @@ class ImportBible extends BaseCommand
             return;
         }
 
+        $db->disableForeignKeyChecks();
         $db->table('bible_verses')->truncate();
         $db->table('bible_books')->truncate();
+        $db->enableForeignKeyChecks();
 
         foreach ($data as $i => $book) {
             [$name, $testament] = self::BOOKS[$i];
