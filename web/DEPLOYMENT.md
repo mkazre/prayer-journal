@@ -1,4 +1,46 @@
-# Deploying Prayer Journal to a live subdomain
+# Deploying Prayer Journal
+
+## cPanel (main domain) — the quick way
+
+You need cPanel with **Terminal** and **Git Version Control**. It takes about 10 minutes.
+
+1. **Pick PHP 8.2 or newer.** In cPanel open **MultiPHP Manager** and set your domain to PHP 8.2+. Then open **Select PHP Version → Extensions** and make sure `intl`, `mbstring`, `mysqli`, `gd` and `curl` are ticked.
+2. **Create the database.** Open **MySQL Database Wizard** and create a database and a user. Give the user **ALL PRIVILEGES**, and note the three values (the names start with your cPanel username, e.g. `cpuser_prayer`).
+3. **Get the code.** In **Git Version Control → Create**, fill in:
+   - Clone URL: `https://github.com/mkazre/prayer-journal.git`
+   - Repository Path: `prayer-journal`. This must be *outside* `public_html`, so it ends up at `/home/<you>/prayer-journal`.
+4. **Install.** Open **Terminal** and run:
+   ```bash
+   bash ~/prayer-journal/web/deploy.sh
+   ```
+   It asks for:
+   - your website address
+   - the database details from step 2
+   - an admin email, username and password
+
+   Then it installs everything: the Bible, reading plans, the Prayer Journal course and the shop starter products. At the end it asks to make the app your main website. Answer **y**. Your current `public_html` is renamed to `public_html.backup-…` (nothing is deleted) and replaced with a link to the app.
+5. **Turn on HTTPS.** Make sure **SSL/TLS Status** shows a certificate for your domain. AutoSSL usually handles this automatically.
+6. Open your site, sign in, and go to `/studio`.
+
+**Updating later** (after new changes are pushed to GitHub), run one line in Terminal:
+
+```bash
+cd ~/prayer-journal && git pull && bash web/deploy.sh
+```
+
+It asks nothing, keeps your data, and only applies what changed. (Instead of `git pull` you can click **Update from Remote** in Git Version Control, then run `bash ~/prayer-journal/web/deploy.sh`.)
+
+**If something goes wrong:**
+
+| Symptom | Fix |
+| --- | --- |
+| "PHP 8.2 or newer was not found" | Redo step 1. If Terminal still uses old PHP, run `PHP_BIN=/opt/cpanel/ea-php83/root/usr/bin/php bash ~/prayer-journal/web/deploy.sh`. |
+| Error 500 after linking `public_html` | Check `~/prayer-journal/web/writable/logs/`. If the host forbids a linked `public_html`, undo the link (`rm ~/public_html && mv ~/public_html.backup-* ~/public_html`). Then, in cPanel **Domains**, set the domain's document root to `prayer-journal/web/public`. |
+| Payments | Add your Stripe/PayFast keys to `~/prayer-journal/web/.env` (see section 6 below). |
+
+The rest of this guide covers servers you manage yourself (VPS, Nginx) and the settings behind the script.
+
+---
 
 ## 1. Server requirements
 
@@ -11,7 +53,7 @@
 
 The document root **must** be the project's `public/` folder, not the project root. That's where `index.php`, `.htaccess`, and all static assets live.
 
-**Apache** (most shared/cPanel hosts): if you can't change the vhost docroot, add this to the project root's `.htaccess` to redirect into `public/`, or better, ask your host to set the subdomain's docroot directly to `.../prayer-journal/public`.
+**Apache / cPanel:** `deploy.sh` links `public_html` to `web/public` for you. Alternatively, set the domain's document root to `.../prayer-journal/web/public` in cPanel **Domains**.
 
 **Nginx** example:
 ```nginx

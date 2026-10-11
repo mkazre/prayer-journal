@@ -132,3 +132,7 @@ _modules/*
 /results/
 /phpunit.xml
 /writable/database.db
+
+# Composer downloaded by deploy.sh on hosts without composer
+/composer.phar
+/composer-setup.php

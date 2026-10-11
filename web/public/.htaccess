@@ -6,9 +6,9 @@ Options -Indexes
 # ----------------------------------------------------------------------
 
 # Turning on the rewrite engine is necessary for the following rules and features.
-# FollowSymLinks must be enabled for this to work.
+# Symlinks are needed for rewrites; SymLinksIfOwnerMatch is what cPanel hosts allow.
 <IfModule mod_rewrite.c>
-	Options +FollowSymlinks
+	Options +SymLinksIfOwnerMatch
 	RewriteEngine On
 
 	# If you installed CodeIgniter in a subfolder, you will need to
