@@ -11,7 +11,7 @@ class BibleHighlightModel extends Model
     protected $returnType    = 'array';
     protected $allowedFields = ['user_id', 'verse_id', 'color', 'created_at'];
 
-    public function set(int $userId, int $verseId, string $color): array
+    public function setColor(int $userId, int $verseId, string $color): array
     {
         $existing = $this->where(['user_id' => $userId, 'verse_id' => $verseId])->first();
         if ($existing) {

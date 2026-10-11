@@ -61,7 +61,7 @@ class BibleApiController extends BaseApiController
             return $this->ok(['highlighted' => false]);
         }
 
-        return $this->ok($model->set($this->currentUser()->id, $verseId, $color));
+        return $this->ok($model->setColor($this->currentUser()->id, $verseId, $color));
     }
 
     public function addNote(int $verseId)
