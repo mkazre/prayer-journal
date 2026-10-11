@@ -1,96 +1,83 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, ScrollView, NativeSyntheticEvent, NativeScrollEvent, Image, TouchableOpacity } from 'react-native';
+import { Dimensions, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors } from '../theme/colors';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { brand } from '../theme/colors';
+import Icon, { IconName } from '../components/Icon';
+import { Button, Logo } from '../components/ui';
 
 const { width } = Dimensions.get('window');
 
-const SLIDES = [
-  {
-    emoji: '📚',
-    title: 'Study the Word',
-    body: 'Take courses, watch lessons, complete quizzes and assignments, and grow at your own pace.',
-  },
-  {
-    emoji: '📖',
-    title: 'Read Scripture',
-    body: 'The full Bible, always with you. Bookmark verses, highlight, and keep personal notes.',
-  },
-  {
-    emoji: '🙏',
-    title: 'Grow in Community',
-    body: 'Share prayer requests, track your reading streak, and shop resources for your journey.',
-  },
+const SLIDES: { icon: IconName; title: string; body: string }[] = [
+  { icon: 'feather', title: 'A prayer journal that travels with you', body: 'Guided devotions with space for your prayer points, meditations and gratitude — saved privately to your journal.' },
+  { icon: 'book-open', title: 'The whole Bible, beautifully', body: 'Read, search, highlight and bookmark. Follow a reading plan and keep your daily streak alive.' },
+  { icon: 'award', title: 'Grow with courses', body: 'Lessons, quizzes and certificates — starting with My Prayer Journal: The Believer’s Prayer Companion.' },
+  { icon: 'users', title: 'Never pray alone', body: 'Share requests on the prayer wall, let others know you prayed, and celebrate answered prayer together.' },
 ];
 
-export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
+export default function OnboardingScreen({ navigation }: any) {
   const [index, setIndex] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
+  const insets = useSafeAreaInsets();
 
-  function handleScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
+  function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
     setIndex(Math.round(e.nativeEvent.contentOffset.x / width));
   }
 
-  async function finish() {
+  async function finish(to: 'Login' | 'Register') {
     await AsyncStorage.setItem('pj_onboarded', 'true');
-    onDone();
+    navigation.replace(to);
   }
 
-  function next() {
-    if (index < SLIDES.length - 1) {
-      scrollRef.current?.scrollTo({ x: (index + 1) * width, animated: true });
-    } else {
-      finish();
-    }
-  }
+  const last = index === SLIDES.length - 1;
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={handleScroll}
-      >
-        {SLIDES.map((slide, i) => (
-          <View key={i} style={[styles.slide, { width }]}>
-            <Text style={styles.emoji}>{slide.emoji}</Text>
-            <Text style={styles.title}>{slide.title}</Text>
-            <Text style={styles.body}>{slide.body}</Text>
+    <LinearGradient colors={[brand.purpleDark, '#1A0A30']} style={{ flex: 1, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 20 }}>
+      <View style={styles.top}>
+        <Logo size={44} />
+        <Pressable onPress={() => finish('Login')} hitSlop={10}><Text style={styles.skip}>Skip</Text></Pressable>
+      </View>
+
+      <ScrollView ref={scrollRef} horizontal pagingEnabled showsHorizontalScrollIndicator={false} onMomentumScrollEnd={onScroll}>
+        {SLIDES.map((s) => (
+          <View key={s.title} style={[styles.slide, { width }]}>
+            <View style={styles.ring}>
+              <View style={styles.iconWrap}><Icon name={s.icon} size={44} color={brand.goldLight} /></View>
+            </View>
+            <Text style={styles.title}>{s.title}</Text>
+            <Text style={styles.body}>{s.body}</Text>
           </View>
         ))}
       </ScrollView>
 
       <View style={styles.dots}>
-        {SLIDES.map((_, i) => (
-          <View key={i} style={[styles.dot, i === index && styles.dotActive]} />
-        ))}
+        {SLIDES.map((s, i) => <View key={s.title} style={[styles.dot, i === index && styles.dotActive]} />)}
       </View>
 
-      <View style={styles.footer}>
-        <TouchableOpacity onPress={finish}>
-          <Text style={styles.skip}>Skip</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.nextBtn} onPress={next}>
-          <Text style={styles.nextText}>{index === SLIDES.length - 1 ? 'Get Started' : 'Next'}</Text>
-        </TouchableOpacity>
+      <View style={{ paddingHorizontal: 24, gap: 10 }}>
+        {last ? (
+          <>
+            <Button title="Create free account" variant="accent" icon="user-plus" onPress={() => finish('Register')} />
+            <Button title="I already have an account" variant="ghost" onPress={() => finish('Login')} style={{ borderColor: 'rgba(255,255,255,0.25)' }} />
+          </>
+        ) : (
+          <Button title="Continue" variant="accent" icon="arrow-right" onPress={() => scrollRef.current?.scrollTo({ x: (index + 1) * width, animated: true })} />
+        )}
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.black },
-  slide: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  emoji: { fontSize: 72, marginBottom: 24 },
-  title: { fontSize: 26, fontWeight: '700', color: colors.white, marginBottom: 12, textAlign: 'center' },
-  body: { fontSize: 16, color: '#cfc6df', textAlign: 'center', lineHeight: 22 },
-  dots: { flexDirection: 'row', justifyContent: 'center', marginBottom: 24 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#4a4058', marginHorizontal: 4 },
-  dotActive: { backgroundColor: colors.gold, width: 20 },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 32, paddingBottom: 40 },
-  skip: { color: '#cfc6df', fontSize: 16 },
-  nextBtn: { backgroundColor: colors.gold, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 24 },
-  nextText: { color: colors.black, fontWeight: '700', fontSize: 16 },
+  top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24 },
+  skip: { color: 'rgba(255,255,255,0.75)', fontSize: 15, fontWeight: '600' },
+  slide: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 36 },
+  ring: { width: 150, height: 150, borderRadius: 75, borderWidth: 1, borderColor: 'rgba(240,216,120,0.25)', alignItems: 'center', justifyContent: 'center', marginBottom: 36 },
+  iconWrap: { width: 108, height: 108, borderRadius: 54, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  title: { fontSize: 26, fontWeight: '800', color: '#fff', textAlign: 'center', letterSpacing: -0.3, marginBottom: 12 },
+  body: { fontSize: 16, color: 'rgba(255,255,255,0.75)', textAlign: 'center', lineHeight: 24 },
+  dots: { flexDirection: 'row', justifyContent: 'center', marginBottom: 24, gap: 6 },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.25)' },
+  dotActive: { backgroundColor: brand.gold, width: 22 },
 });

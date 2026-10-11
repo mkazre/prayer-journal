@@ -7,232 +7,288 @@ use App\Modules\Lms\Models\CourseModel;
 use App\Modules\Lms\Models\EnrollmentModel;
 use App\Modules\Lms\Models\LessonModel;
 use App\Modules\Shop\Models\CartModel;
-use App\Modules\Shop\Models\DiscountModel;
 use App\Modules\Shop\Models\LessonUnlockModel;
 use App\Modules\Shop\Models\OrderModel;
 use App\Modules\Shop\Models\PaymentModel;
 use App\Modules\Shop\Models\SubscriptionPlanModel;
 use App\Modules\Shop\Models\UserSubscriptionModel;
-use App\Modules\Shop\Services\PaymentGateway;
 use App\Modules\Shop\Services\PayFastGateway;
+use App\Modules\Shop\Services\PaymentGateway;
+use App\Modules\Shop\Services\Pricing;
 
 class CheckoutController extends BaseController
 {
+    /**
+     * One-page checkout for the cart (guests welcome).
+     */
     public function cart()
     {
-        $cartModel = new CartModel();
-        $cart      = $cartModel->findOrCreate(auth()->id(), session()->session_id ?? session_id());
-        $items     = $cartModel->items($cart['id']);
+        $carts = new CartModel();
+        $cart  = $carts->current();
+        $items = $carts->items((int) $cart['id']);
         if ($items === []) {
             return redirect()->to(site_url('cart'))->with('error', 'Your cart is empty.');
         }
+        foreach ($items as $i) {
+            $tracked = (int) $i['track_inventory'] && ! (int) $i['allow_backorder'] && $i['product_type'] !== 'digital';
+            if (! (int) $i['is_active'] || ($tracked && (int) $i['quantity'] > (int) $i['stock'])) {
+                return redirect()->to(site_url('cart'))->with('error', '"' . $i['title'] . '" no longer has enough stock. Please update your cart.');
+            }
+        }
+        $digital = ! CartModel::needsShipping($items) || array_filter($items, static fn ($i) => $i['product_type'] === 'digital') !== [];
+        $in      = $this->request->getMethod() === 'POST' ? (array) $this->request->getPost() : [];
+        $country = strtoupper((string) ($in['country'] ?? $this->request->getGet('country') ?? Pricing::storeCountry()));
+        $quote   = Pricing::quote($items, $country, session('cart_discount'), isset($in['shipping_rate']) ? (int) $in['shipping_rate'] : null, $in['region'] ?? null);
 
-        if ($this->request->getMethod() === 'POST') {
-            $subtotal      = $cartModel->subtotalCents($cart['id']);
-            $discount      = null;
-            $discountCents = 0;
-            $code          = (string) $this->request->getPost('discount_code');
-            if ($code !== '') {
-                $discountModel = new DiscountModel();
-                $discount      = $discountModel->findValid($code);
-                if ($discount) {
-                    $discountCents = $discountModel->amountCents($discount, $subtotal);
-                }
+        if ($this->request->getMethod() === 'POST' && ! $this->request->getPost('refresh')) {
+            if ($digital && ! auth()->loggedIn()) {
+                return redirect()->to(site_url('login'))->with('info', 'Sign in to buy downloads — they are kept in your account.');
+            }
+            $rules = [
+                'email' => 'required|valid_email|max_length[255]',
+                'name'  => 'required|max_length[150]',
+            ];
+            if ($quote['needs_shipping']) {
+                $rules += ['line1' => 'required|max_length[200]', 'city' => 'required|max_length[100]', 'postal_code' => 'required|max_length[20]', 'country' => 'required|exact_length[2]'];
+            }
+            if (! $this->validateData($in, $rules)) {
+                return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            }
+            if (! $quote['shipping_available']) {
+                return redirect()->back()->withInput()->with('error', 'We do not deliver to that country yet.');
+            }
+            if ($quote['discount_error']) {
+                session()->remove('cart_discount');
+
+                return redirect()->back()->withInput()->with('error', $quote['discount_error']);
             }
 
-            $taxable    = max(0, $subtotal - $discountCents);
-            $taxCents   = 0; // Tax rules are configured per region in the admin; default 0 until set up.
-            $shipping   = 0;
-            $totalCents = $taxable + $taxCents + $shipping;
+            $address = $quote['needs_shipping'] ? [
+                'name' => trim($in['name']), 'line1' => trim($in['line1']), 'line2' => trim($in['line2'] ?? ''), 'city' => trim($in['city']),
+                'region' => trim($in['region'] ?? ''), 'postal_code' => trim($in['postal_code']), 'country' => $country, 'phone' => trim($in['phone'] ?? ''),
+            ] : null;
 
-            $order = (new OrderModel())->createFromCart(
-                $cart,
-                $items,
-                (string) ($this->request->getPost('email') ?: auth()->user()?->email),
-                auth()->id(),
-                [
-                    'subtotal_cents' => $subtotal,
-                    'discount_cents' => $discountCents,
-                    'tax_cents'      => $taxCents,
-                    'shipping_cents' => $shipping,
-                    'total_cents'    => $totalCents,
-                    'currency'       => 'USD',
-                ],
-                $discount,
-                (string) $this->request->getPost('shipping_address')
-            );
+            $order = (new OrderModel())->createFromCart($cart, $items, trim($in['email']), auth()->loggedIn() ? $this->userId() : null, [
+                'subtotal_cents' => $quote['subtotal'],
+                'discount_cents' => $quote['discount'],
+                'tax_cents'      => $quote['tax'],
+                'shipping_cents' => $quote['shipping'],
+                'total_cents'    => $quote['total'],
+                'currency'       => $quote['currency'],
+            ], $quote['discount_row'], $address, [
+                'customer_name'   => trim($in['name']),
+                'phone'           => trim($in['phone'] ?? '') ?: null,
+                'shipping_method' => $quote['shipping_rate']['name'] ?? null,
+                'customer_note'   => trim(mb_substr((string) ($in['note'] ?? ''), 0, 1000)) ?: null,
+            ]);
 
-            $paymentId = (new PaymentModel())->insert([
+            // Empty the cart now that its contents live on the order.
+            db_connect()->table('cart_items')->where('cart_id', $cart['id'])->delete();
+            session()->remove('cart_discount');
+            $guestOrders   = (array) session('guest_orders');
+            $guestOrders[] = (int) $order['id'];
+            session()->set('guest_orders', $guestOrders);
+
+            $paymentId = (int) (new PaymentModel())->insert([
                 'order_id'     => $order['id'],
-                'user_id'      => auth()->id(),
+                'user_id'      => auth()->loggedIn() ? $this->userId() : null,
                 'gateway'      => 'pending',
                 'amount_cents' => $order['total_cents'],
                 'currency'     => $order['currency'],
                 'status'       => 'pending',
             ], true);
 
-            return $this->beginPayment($paymentId, $order['total_cents'], $order['currency'], 'Order ' . $order['order_number'], site_url('orders/' . $order['id'] . '/confirmation'), site_url('checkout/cart'));
+            return $this->beginPayment($paymentId, (int) $order['total_cents'], $order['currency'], 'Order ' . $order['order_number'], site_url('orders/' . $order['id']), site_url('orders/' . $order['id']), (string) $order['email']);
         }
 
-        return view('Shop/checkout/cart', ['title' => 'Checkout', 'items' => $items, 'subtotal' => $cartModel->subtotalCents($cart['id'])]);
+        $user    = auth()->user();
+        $last    = auth()->loggedIn() ? db_connect()->table('orders')->where('user_id', $this->userId())->where('shipping_address IS NOT NULL')->orderBy('id', 'DESC')->get()->getRowArray() : null;
+        $prefill = $last ? OrderModel::address($last) : [];
+
+        return view('Shop/checkout/cart', [
+            'title'     => 'Checkout',
+            'items'     => $items,
+            'quote'     => $quote,
+            'country'   => $country,
+            'prefill'   => array_merge(['email' => $user->email ?? '', 'name' => $user ? display_name() : ''], $prefill, array_map('strval', array_filter($in, 'is_string'))),
+            'gateways'  => $this->gateways(),
+            'digital'   => $digital,
+        ]);
     }
 
     public function course(int $courseId)
     {
-        if (! auth()->loggedIn()) {
-            return redirect()->to(site_url('login'));
-        }
-
         $course = (new CourseModel())->find($courseId);
-        if (! $course) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        if (! $course || $course['status'] !== 'published') {
+            $this->notFound();
         }
-
+        if (! auth()->loggedIn()) {
+            return redirect()->to(site_url('login'))->with('info', 'Sign in to buy this course.');
+        }
+        if (EnrollmentModel::isActive((new EnrollmentModel())->findFor($courseId, $this->userId()))) {
+            return redirect()->to(site_url('study/' . $course['slug']));
+        }
         if ($this->request->getMethod() === 'POST') {
-            $paymentId = (new PaymentModel())->insert([
+            $paymentId = (int) (new PaymentModel())->insert([
                 'course_id'    => $course['id'],
-                'user_id'      => auth()->id(),
+                'user_id'      => $this->userId(),
                 'gateway'      => 'pending',
                 'amount_cents' => $course['price_cents'],
                 'currency'     => $course['currency'],
                 'status'       => 'pending',
             ], true);
 
-            return $this->beginPayment($paymentId, $course['price_cents'], $course['currency'], $course['title'], site_url('study/' . $course['slug']), site_url('checkout/course/' . $courseId));
+            return $this->beginPayment($paymentId, (int) $course['price_cents'], $course['currency'], $course['title'], site_url('study/' . $course['slug']), site_url('checkout/course/' . $courseId));
         }
 
-        return view('Shop/checkout/course', ['title' => 'Checkout: ' . $course['title'], 'course' => $course]);
+        return view('Shop/checkout/product', ['title' => 'Checkout', 'kind' => 'Course', 'name' => $course['title'], 'description' => $course['summary'], 'price' => (int) $course['price_cents'], 'currency' => $course['currency'], 'gateways' => $this->gateways(), 'icon' => 'graduation']);
     }
 
     /**
-     * Pay-per-chapter: unlock a single lesson that carries its own price,
-     * without requiring the whole course to be purchased.
+     * Pay-per-lesson: unlock a single lesson that carries its own price.
      */
     public function lesson(int $lessonId)
     {
         if (! auth()->loggedIn()) {
             return redirect()->to(site_url('login'));
         }
-
         $lesson = (new LessonModel())->find($lessonId);
         $course = $lesson ? (new CourseModel())->find($lesson['course_id']) : null;
         if (! $lesson || ! $course) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            $this->notFound();
         }
-
-        if ((new LessonUnlockModel())->hasUnlocked(auth()->id(), $lessonId)) {
+        if ((new LessonUnlockModel())->hasUnlocked($this->userId(), $lessonId)) {
             return redirect()->to(site_url('study/' . $course['slug'] . '/lesson/' . $lessonId));
         }
-
         if ($this->request->getMethod() === 'POST') {
-            $paymentId = (new PaymentModel())->insert([
+            $paymentId = (int) (new PaymentModel())->insert([
                 'lesson_id'    => $lessonId,
-                'user_id'      => auth()->id(),
+                'user_id'      => $this->userId(),
                 'gateway'      => 'pending',
                 'amount_cents' => $lesson['price_cents'],
                 'currency'     => $course['currency'],
                 'status'       => 'pending',
             ], true);
 
-            return $this->beginPayment($paymentId, $lesson['price_cents'], $course['currency'], $lesson['title'], site_url('study/' . $course['slug'] . '/lesson/' . $lessonId), site_url('checkout/lesson/' . $lessonId));
+            return $this->beginPayment($paymentId, (int) $lesson['price_cents'], $course['currency'], $lesson['title'], site_url('study/' . $course['slug'] . '/lesson/' . $lessonId), site_url('checkout/lesson/' . $lessonId));
         }
 
-        return view('Shop/checkout/lesson', ['title' => 'Unlock: ' . $lesson['title'], 'course' => $course, 'lesson' => $lesson]);
+        return view('Shop/checkout/product', ['title' => 'Unlock lesson', 'kind' => 'Lesson', 'name' => $lesson['title'], 'description' => 'From ' . $course['title'], 'price' => (int) $lesson['price_cents'], 'currency' => $course['currency'], 'gateways' => $this->gateways(), 'icon' => 'unlock']);
     }
 
     /**
-     * Subscription or lifetime-deal plans (managed from shop-admin).
+     * Subscription or lifetime membership plans.
      */
     public function plan(int $planId)
     {
         if (! auth()->loggedIn()) {
-            return redirect()->to(site_url('login'));
+            return redirect()->to(site_url('login'))->with('info', 'Sign in to choose a membership.');
         }
-
         $plan = (new SubscriptionPlanModel())->find($planId);
         if (! $plan || ! $plan['is_active']) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            $this->notFound();
         }
-
         if ($this->request->getMethod() === 'POST') {
-            $subscriptionId = (new UserSubscriptionModel())->insert([
-                'user_id' => auth()->id(),
-                'plan_id' => $planId,
-                'status'  => 'pending',
-            ], true);
-
-            $paymentId = (new PaymentModel())->insert([
+            $subscriptionId = (int) (new UserSubscriptionModel())->insert(['user_id' => $this->userId(), 'plan_id' => $planId, 'status' => 'pending'], true);
+            $paymentId      = (int) (new PaymentModel())->insert([
                 'plan_id'         => $planId,
                 'subscription_id' => $subscriptionId,
-                'user_id'         => auth()->id(),
+                'user_id'         => $this->userId(),
                 'gateway'         => 'pending',
                 'amount_cents'    => $plan['price_cents'],
                 'currency'        => $plan['currency'],
                 'status'          => 'pending',
             ], true);
 
-            return $this->beginPayment($paymentId, $plan['price_cents'], $plan['currency'], $plan['name'], site_url('dashboard'), site_url('checkout/plan/' . $planId));
+            return $this->beginPayment($paymentId, (int) $plan['price_cents'], $plan['currency'], $plan['name'], site_url('dashboard'), site_url('checkout/plan/' . $planId));
         }
 
-        return view('Shop/checkout/plan', ['title' => 'Subscribe: ' . $plan['name'], 'plan' => $plan]);
+        $interval = $plan['type'] === 'subscription' ? ' / ' . ($plan['billing_interval'] ?: 'month') : ' once';
+
+        return view('Shop/checkout/product', ['title' => 'Membership', 'kind' => 'Membership', 'name' => $plan['name'], 'description' => 'Access to every membership course' . ($plan['type'] === 'lifetime' ? ', forever.' : '.'), 'price' => (int) $plan['price_cents'], 'currency' => $plan['currency'], 'suffix' => $interval, 'gateways' => $this->gateways(), 'icon' => 'sparkles']);
     }
 
-    protected function beginPayment(int $paymentId, int $amountCents, string $currency, string $description, string $successUrl, string $cancelUrl)
+    /**
+     * Gateways that can take a payment right now.
+     *
+     * @return array<string,string> key => label
+     */
+    private function gateways(): array
     {
-        $chosenGateway = (string) ($this->request->getPost('gateway') ?: 'stripe');
+        $out = [];
+        if ((new PaymentGateway())->isLive()) {
+            $out['stripe'] = 'Card (Stripe)';
+        }
+        if ((new PayFastGateway())->isLive()) {
+            $out['payfast'] = 'PayFast (card, EFT, SnapScan)';
+        }
+        if ($out === [] && self::testPaymentsAllowed()) {
+            $out['test'] = 'Test payment (no gateway configured)';
+        }
 
-        if ($chosenGateway === 'payfast') {
+        return $out;
+    }
+
+    /**
+     * Instant "test" payments are for local development only, unless an
+     * administrator explicitly allows them (e.g. on a staging site).
+     */
+    public static function testPaymentsAllowed(): bool
+    {
+        return ENVIRONMENT !== 'production' || site_setting('allow_test_payments') === '1';
+    }
+
+    protected function beginPayment(int $paymentId, int $amountCents, string $currency, string $description, string $successUrl, string $cancelUrl, ?string $email = null)
+    {
+        if ($amountCents <= 0) {
+            $this->confirmPayment($paymentId, 'free order');
+
+            return redirect()->to($successUrl)->with('message', 'All done — nothing to pay.');
+        }
+        $gateways = $this->gateways();
+        $chosen   = (string) ($this->request->getPost('gateway') ?: array_key_first($gateways));
+        if (! isset($gateways[$chosen])) {
+            (new PaymentModel())->update($paymentId, ['status' => 'failed']);
+
+            return redirect()->to($cancelUrl)->with('error', 'Online payments are not set up yet. Please contact us to complete your purchase.');
+        }
+
+        if ($chosen === 'payfast') {
             $payFast = new PayFastGateway();
-            if ($payFast->isLive()) {
-                (new PaymentModel())->update($paymentId, ['gateway' => 'payfast']);
+            (new PaymentModel())->update($paymentId, ['gateway' => 'payfast']);
 
-                $fields = $payFast->buildFields(
-                    (string) $paymentId,
-                    $amountCents,
-                    $description,
-                    $successUrl,
-                    $cancelUrl,
-                    site_url('webhooks/payfast'),
-                    (string) (auth()->user()->email ?? '')
-                );
+            return view('Shop/checkout/payfast_redirect', ['title' => 'Redirecting to PayFast…', 'processUrl' => $payFast->processUrl(),
+                'fields' => $payFast->buildFields((string) $paymentId, $amountCents, $description, $successUrl, $cancelUrl, site_url('webhooks/payfast'), (string) ($email ?: auth()->user()->email ?? ''))]);
+        }
+        if ($chosen === 'test') {
+            (new PaymentModel())->update($paymentId, ['gateway' => 'test']);
+            $this->confirmPayment($paymentId, 'test payment');
 
-                return view('Shop/checkout/payfast_redirect', ['title' => 'Redirecting to PayFast...', 'processUrl' => $payFast->processUrl(), 'fields' => $fields]);
-            }
+            return redirect()->to($successUrl)->with('message', 'Payment confirmed (test mode — no real money was taken).');
         }
 
-        $gateway = new PaymentGateway();
-        $result  = $gateway->createCheckout((string) $paymentId, $amountCents, $currency, $successUrl, $cancelUrl, $description);
-
-        if ($result['mode'] === 'instant') {
-            $this->confirmPayment($paymentId);
-
-            return redirect()->to($successUrl)->with('message', 'Payment confirmed (test mode - no live gateway configured).');
-        }
-
-        (new PaymentModel())->update($paymentId, [
-            'gateway'     => 'stripe',
-            'gateway_ref' => $result['session_id'],
-        ]);
+        $result = (new PaymentGateway())->createCheckout((string) $paymentId, $amountCents, $currency, $successUrl, $cancelUrl, $description);
+        (new PaymentModel())->update($paymentId, ['gateway' => 'stripe', 'gateway_ref' => $result['session_id'] ?? null]);
 
         return redirect()->to($result['url']);
     }
 
     /**
-     * Called for the instant/dev-mode path, and by gateway webhooks once real payments are wired up.
-     * $paymentId is always the `payments` table row id.
+     * Fulfils whatever the payment was for. Idempotent.
      */
-    protected function confirmPayment(int $paymentId): void
+    protected function confirmPayment(int $paymentId, string $via = 'payment gateway'): void
     {
-        $payment = (new PaymentModel())->find($paymentId);
+        $payments = new PaymentModel();
+        $payment  = $payments->find($paymentId);
         if (! $payment || $payment['status'] === 'paid') {
             return;
         }
-        (new PaymentModel())->update($paymentId, ['status' => 'paid']);
+        $payments->update($paymentId, ['status' => 'paid']);
 
         if ($payment['order_id']) {
-            (new OrderModel())->markPaid((int) $payment['order_id']);
+            (new OrderModel())->markPaid((int) $payment['order_id'], $via);
         } elseif ($payment['course_id']) {
-            (new EnrollmentModel())->enroll((int) $payment['course_id'], (int) $payment['user_id']);
+            (new EnrollmentModel())->enroll((int) $payment['course_id'], (int) $payment['user_id'], 'purchase');
         } elseif ($payment['lesson_id']) {
             (new LessonUnlockModel())->unlock((int) $payment['user_id'], (int) $payment['lesson_id']);
         } elseif ($payment['plan_id'] && $payment['subscription_id']) {
@@ -243,14 +299,13 @@ class CheckoutController extends BaseController
 
     public function webhook()
     {
-        $payload   = $this->request->getBody();
-        $signature = $this->request->getHeaderLine('Stripe-Signature');
-        $event     = (new PaymentGateway())->verifyWebhookSignature($payload, $signature);
-
+        $event = (new PaymentGateway())->verifyWebhookSignature($this->request->getBody(), $this->request->getHeaderLine('Stripe-Signature'));
         if ($event && $event->type === 'checkout.session.completed') {
             $paymentId = (int) ($event->data->object->client_reference_id ?? 0);
-            if ($paymentId > 0) {
-                $this->confirmPayment($paymentId);
+            $payment   = $paymentId ? (new PaymentModel())->find($paymentId) : null;
+            $paid      = (int) ($event->data->object->amount_total ?? -1);
+            if ($payment && ($paid === -1 || $paid === (int) $payment['amount_cents'])) {
+                $this->confirmPayment($paymentId, 'Stripe');
             }
         }
 
@@ -262,8 +317,10 @@ class CheckoutController extends BaseController
         $post = $this->request->getPost();
         if ((new PayFastGateway())->verifySignature($post) && ($post['payment_status'] ?? '') === 'COMPLETE') {
             $paymentId = (int) ($post['m_payment_id'] ?? 0);
-            if ($paymentId > 0) {
-                $this->confirmPayment($paymentId);
+            $payment   = $paymentId ? (new PaymentModel())->find($paymentId) : null;
+            // Reject notifications whose amount does not match what we asked for.
+            if ($payment && abs((float) ($post['amount_gross'] ?? 0) - ((int) $payment['amount_cents'] / 100)) < 0.01) {
+                $this->confirmPayment($paymentId, 'PayFast');
             }
         }
 

@@ -3,43 +3,69 @@
 namespace App\Controllers;
 
 use CodeIgniter\Controller;
+use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Psr\Log\LoggerInterface;
 
 /**
- * BaseController provides a convenient place for loading components
- * and performing functions that are needed by all your controllers.
- *
- * Extend this class in any new controllers:
- * ```
- *     class Home extends BaseController
- * ```
- *
- * For security, be sure to declare any new methods as protected or private.
+ * Base for every web controller. Adds small helpers for responding to both
+ * classic form posts (redirect + flash) and fetch() requests (JSON).
  */
 abstract class BaseController extends Controller
 {
-    /**
-     * Be sure to declare properties for any property fetch you initialized.
-     * The creation of dynamic property is deprecated in PHP 8.2.
-     */
-
-    // protected $session;
-
-    /**
-     * @return void
-     */
     public function initController(RequestInterface $request, ResponseInterface $response, LoggerInterface $logger)
     {
-        // Load here all helpers you want to be available in your controllers that extend BaseController.
-        // Caution: Do not put the this below the parent::initController() call below.
-        // $this->helpers = ['form', 'url'];
-
-        // Caution: Do not edit this line.
         parent::initController($request, $response, $logger);
+    }
 
-        // Preload any models, libraries, etc, here.
-        // $this->session = service('session');
+    protected function wantsJson(): bool
+    {
+        return $this->request->isAJAX() || str_contains($this->request->getHeaderLine('Accept'), 'application/json');
+    }
+
+    /**
+     * JSON for fetch() callers, otherwise redirect back (or to $to) with a flash message.
+     */
+    protected function done(string $message, array $data = [], ?string $to = null)
+    {
+        if ($this->wantsJson()) {
+            return $this->response->setJSON(array_merge(['ok' => true, 'message' => $message, 'csrf' => csrf_hash()], $data));
+        }
+        $redirect = $to ? redirect()->to($to) : redirect()->back();
+
+        return $redirect->with('message', $message);
+    }
+
+    protected function failed(string $message, int $code = 422, ?string $to = null)
+    {
+        if ($this->wantsJson()) {
+            return $this->response->setStatusCode($code)->setJSON(['ok' => false, 'error' => $message, 'csrf' => csrf_hash()]);
+        }
+        $redirect = $to ? redirect()->to($to) : redirect()->back()->withInput();
+
+        return $redirect->with('error', $message);
+    }
+
+    protected function notFound(): never
+    {
+        throw PageNotFoundException::forPageNotFound();
+    }
+
+    protected function userId(): int
+    {
+        return (int) auth()->id();
+    }
+
+    /**
+     * JSON or form body as an array.
+     */
+    protected function input(): array
+    {
+        if (str_contains($this->request->getHeaderLine('Content-Type'), 'application/json')) {
+            return (array) ($this->request->getJSON(true) ?? []);
+        }
+
+        return (array) $this->request->getPost();
     }
 }

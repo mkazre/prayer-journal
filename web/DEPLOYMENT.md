@@ -1,8 +1,50 @@
-# Deploying Prayer Journal to a live subdomain
+# Deploying Prayer Journal
+
+## cPanel (main domain) — the quick way
+
+You need cPanel with **Terminal** and **Git Version Control**. It takes about 10 minutes.
+
+1. **Pick PHP 8.2 or newer.** In cPanel open **MultiPHP Manager** and set your domain to PHP 8.2+. Then open **Select PHP Version → Extensions** and make sure `intl`, `mbstring`, `mysqli`, `gd` and `curl` are ticked.
+2. **Create the database.** Open **MySQL Database Wizard** and create a database and a user. Give the user **ALL PRIVILEGES**, and note the three values (the names start with your cPanel username, e.g. `cpuser_prayer`).
+3. **Get the code.** In **Git Version Control → Create**, fill in:
+   - Clone URL: `https://github.com/mkazre/prayer-journal.git`
+   - Repository Path: `prayer-journal`. This must be *outside* `public_html`, so it ends up at `/home/<you>/prayer-journal`.
+4. **Install.** Open **Terminal** and run:
+   ```bash
+   bash ~/prayer-journal/web/deploy.sh
+   ```
+   It asks for:
+   - your website address
+   - the database details from step 2
+   - an admin email, username and password
+
+   Then it installs everything: the Bible, reading plans, the Prayer Journal course and the shop starter products. At the end it asks to make the app your main website. Answer **y**. Your current `public_html` is renamed to `public_html.backup-…` (nothing is deleted) and replaced with a link to the app.
+5. **Turn on HTTPS.** Make sure **SSL/TLS Status** shows a certificate for your domain. AutoSSL usually handles this automatically.
+6. Open your site, sign in, and go to `/studio`.
+
+**Updating later** (after new changes are pushed to GitHub), run one line in Terminal:
+
+```bash
+cd ~/prayer-journal && git pull && bash web/deploy.sh
+```
+
+It asks nothing, keeps your data, and only applies what changed. (Instead of `git pull` you can click **Update from Remote** in Git Version Control, then run `bash ~/prayer-journal/web/deploy.sh`.)
+
+**If something goes wrong:**
+
+| Symptom | Fix |
+| --- | --- |
+| "PHP 8.2 or newer was not found" | Redo step 1. If Terminal still uses old PHP, run `PHP_BIN=/opt/cpanel/ea-php83/root/usr/bin/php bash ~/prayer-journal/web/deploy.sh`. |
+| Error 500 after linking `public_html` | Check `~/prayer-journal/web/writable/logs/`. If the host forbids a linked `public_html`, undo the link (`rm ~/public_html && mv ~/public_html.backup-* ~/public_html`). Then, in cPanel **Domains**, set the domain's document root to `prayer-journal/web/public`. |
+| Payments | Add your Stripe/PayFast keys to `~/prayer-journal/web/.env` (see section 6 below). |
+
+The rest of this guide covers servers you manage yourself (VPS, Nginx) and the settings behind the script.
+
+---
 
 ## 1. Server requirements
 
-- PHP 8.1+ with extensions: `intl`, `mbstring`, `mysqli` (or `pdo_mysql`), `curl`, `gd`, `json`
+- PHP 8.2+ with extensions: `intl`, `mbstring`, `mysqli` (or `pdo_mysql`), `curl`, `gd`, `json`
 - MySQL 8 (InnoDB) — a real server, not SQLite (SQLite was local-dev-only)
 - Composer available on the server, or upload `vendor/` from a local `composer install --no-dev`
 - HTTPS certificate for the subdomain (required for Stripe/PayFast to work correctly and for secure cookies)
@@ -11,7 +53,7 @@
 
 The document root **must** be the project's `public/` folder, not the project root. That's where `index.php`, `.htaccess`, and all static assets live.
 
-**Apache** (most shared/cPanel hosts): if you can't change the vhost docroot, add this to the project root's `.htaccess` to redirect into `public/`, or better, ask your host to set the subdomain's docroot directly to `.../prayer-journal/public`.
+**Apache / cPanel:** `deploy.sh` links `public_html` to `web/public` for you. Alternatively, set the domain's document root to `.../prayer-journal/web/public` in cPanel **Domains**.
 
 **Nginx** example:
 ```nginx
@@ -60,6 +102,10 @@ encryption.key = <generate fresh — see step 4>
 # over file sessions for a multi-worker PHP-FPM deployment.
 session.driver = 'CodeIgniter\Session\Handlers\DatabaseHandler'
 session.savePath = 'ci_sessions'
+
+# Only needed if a browser build of the mobile app calls the API from another
+# domain. Native iOS/Android builds do not need CORS.
+CORS_ALLOWED_ORIGINS = https://app.yourdomain.com
 ```
 
 ## 4. Install, migrate, seed
@@ -68,9 +114,16 @@ session.savePath = 'ci_sessions'
 composer install --no-dev --optimize-autoloader
 php spark key:generate
 php spark migrate --all
-php spark bible:import
-php spark import:prayer-journal   # optional: re-imports the PDF course as a draft
+php spark bible:import                    # full KJV text (already cleaned of editorial braces)
+php spark bible:plans                     # 5 reading plans (Bible in a year, Psalms & Proverbs, ...)
+php spark import:prayer-journal           # the "My Prayer Journal" course, built from the PDF
+php spark db:seed ShopStarterSeeder       # ZAR/VAT settings, shipping zones, the print + eBook products
+php spark app:admin --email you@yourdomain.com --password 'a-long-password' --username you
 ```
+
+- `import:prayer-journal` publishes the course. Add `--draft` to keep it hidden, `--author=email` to set the owner, or `--force` to rebuild it. Rebuilding deletes learners' progress for that course.
+- `ShopStarterSeeder` prices (R250 print and R120 eBook) and stock are placeholders. Change them in **Studio → Products**.
+- `bible:clean` re-runs the KJV clean-up if you ever import a different source file.
 
 ## 5. File permissions
 
@@ -82,7 +135,7 @@ chown -R www-data:www-data writable   # or the appropriate PHP-FPM user
 
 ## 6. Payment gateways
 
-Set these in `.env` once you have real credentials — until then, checkout runs in "instant test mode" (orders/enrollments confirm immediately with no real charge, useful for the first round of testing on the subdomain):
+Set these in `.env` once you have real credentials. Without them, checkout offers a **test payment** button that confirms orders without charging. It is available only when `CI_ENVIRONMENT` is not `production`, or when **Studio → Settings → Store → Allow test payments** is switched on. Use that switch on a staging subdomain only:
 
 ```
 STRIPE_SECRET_KEY = sk_live_...
@@ -98,18 +151,19 @@ Webhook URLs to register with each gateway:
 - Stripe: `https://app.yourdomain.com/webhooks/stripe`
 - PayFast: `https://app.yourdomain.com/webhooks/payfast` (set automatically per-transaction, but PayFast also lets you set a default ITN URL in the merchant dashboard)
 
-## 7. Promote your first admin user
+## 7. Admins and roles
 
-Register a normal account on the site, then run:
+`php spark app:admin` (step 4) creates or promotes a superadmin without prompting. Run it again with `--group=admin` for more admins.
 
-```bash
-php spark shield:user activate -e you@yourdomain.com
-```
+After that, manage everyone from **Studio → Users & roles**:
 
-Then add the `admin` (or `superadmin`) group directly via SQL, since there's no UI for this yet:
-```sql
-INSERT INTO auth_groups_users (user_id, `group`, created_at) VALUES (<your_user_id>, 'superadmin', NOW());
-```
+| Role | What it unlocks |
+| --- | --- |
+| Instructor | Courses, grading and students |
+| Vendor | Products and inventory |
+| Admin | The whole shop, site settings and moderation |
+
+Only a superadmin can grant superadmin.
 
 ## 8. Cron (optional, for later)
 
@@ -118,13 +172,12 @@ Nothing currently requires a scheduled job, but the `jobs` table exists for futu
 * * * * * php /var/www/prayer-journal/spark jobs:work >> /dev/null 2>&1
 ```
 
-## What's already been tested locally
+## Before going live
 
-Registration/login, instructor course+lesson+quiz authoring, student enroll/study/quiz/grading with auto-issued certificates, Bible reading (full KJV) with bookmarks/highlights, cart → checkout → order (dev-mode instant pay), and the shop back-office (products/inventory/discounts/fulfillment/reports). All of this should carry over directly to MySQL — the only environment-specific things are the `.env` values above.
+```bash
+vendor/bin/phpunit    # 38 tests on in-memory SQLite: security, API, LMS, shop and the course import
+```
 
-## Known gaps to revisit after the first live test
-
-- Stripe/PayFast are wired up correctly but untested against real sandbox/live credentials — do a real test transaction on each before accepting live payments.
-- No REST API yet (needed for the planned Expo mobile app) and no mobile app has been started.
-- Course/lesson authoring UI is functional but plain; Shield's own auth views (login/register/forgot-password) haven't been re-themed with the brand palette yet.
-- Tax rules and shipping rates have tables but no admin UI yet — shipping/tax currently default to $0.
+- Do a real sandbox transaction on Stripe and on PayFast before accepting live payments. Amount verification and signatures are implemented but have not been run against real credentials.
+- Replace the placeholder product prices, and review shipping zones and VAT under **Studio → Shipping & tax**.
+- Upload your final logo in **Studio → Settings → Branding**. It is used on every page, in the Studio, on certificates and on printed journals. The mobile app ships with `mobile/assets/logo-mark.png`; replace that file too.

@@ -77,7 +77,9 @@ class Filters extends BaseFilters
     public array $globals = [
         'before' => [
             // 'honeypot',
-            // 'csrf',
+            // Webhooks are verified by signature; the API authenticates with
+            // bearer tokens, not cookies, so neither can carry a CSRF token.
+            'csrf' => ['except' => ['webhooks/*', 'api/*']],
             // 'invalidchars',
         ],
         'after' => [
@@ -113,5 +115,6 @@ class Filters extends BaseFilters
     public array $filters = [
         // 'tokens' is applied per-route-group in Routes.php instead of
         // blanket api/*, since api/v1/auth/* must stay open (no token yet).
+        'cors:api' => ['before' => ['api/*'], 'after' => ['api/*']],
     ];
 }

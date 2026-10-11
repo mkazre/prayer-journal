@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { Platform, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { NavigationContainer } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '../context/AuthContext';
-import { colors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import Icon, { IconName } from '../components/Icon';
+import { Logo } from '../components/ui';
 
 import OnboardingScreen from '../screens/OnboardingScreen';
 import LoginScreen from '../screens/LoginScreen';
@@ -15,75 +18,79 @@ import HomeScreen from '../screens/HomeScreen';
 import CoursesScreen from '../screens/CoursesScreen';
 import CourseDetailScreen from '../screens/CourseDetailScreen';
 import LessonScreen from '../screens/LessonScreen';
+import QuizScreen from '../screens/QuizScreen';
 import BibleScreen from '../screens/BibleScreen';
 import BibleChapterScreen from '../screens/BibleChapterScreen';
+import BibleSearchScreen from '../screens/BibleSearchScreen';
+import JournalScreen from '../screens/JournalScreen';
+import JournalEntryScreen from '../screens/JournalEntryScreen';
+import PrayerWallScreen from '../screens/PrayerWallScreen';
 import ShopScreen from '../screens/ShopScreen';
 import ProductScreen from '../screens/ProductScreen';
+import CartScreen from '../screens/CartScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 
-const AuthStack = createNativeStackNavigator();
-const CoursesStack = createNativeStackNavigator();
-const BibleStack = createNativeStackNavigator();
-const ShopStack = createNativeStackNavigator();
+const Root = createNativeStackNavigator();
+const Auth = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
 
-const screenOptions = {
-  headerStyle: { backgroundColor: colors.black },
-  headerTintColor: colors.white,
-  headerTitleStyle: { fontWeight: '700' as const },
-};
-
-function CoursesNavigator() {
-  return (
-    <CoursesStack.Navigator screenOptions={screenOptions}>
-      <CoursesStack.Screen name="CoursesList" component={CoursesScreen} options={{ title: 'Courses' }} />
-      <CoursesStack.Screen name="CourseDetail" component={CourseDetailScreen} options={({ route }: any) => ({ title: route.params.title })} />
-      <CoursesStack.Screen name="Lesson" component={LessonScreen} options={({ route }: any) => ({ title: route.params.title })} />
-    </CoursesStack.Navigator>
-  );
-}
-
-function BibleNavigator() {
-  return (
-    <BibleStack.Navigator screenOptions={screenOptions}>
-      <BibleStack.Screen name="BibleBooks" component={BibleScreen} options={{ title: 'The Bible' }} />
-      <BibleStack.Screen name="BibleChapter" component={BibleChapterScreen} options={{ title: '' }} />
-    </BibleStack.Navigator>
-  );
-}
-
-function ShopNavigator() {
-  return (
-    <ShopStack.Navigator screenOptions={screenOptions}>
-      <ShopStack.Screen name="ShopList" component={ShopScreen} options={{ title: 'Shop' }} />
-      <ShopStack.Screen name="Product" component={ProductScreen} options={({ route }: any) => ({ title: route.params.title })} />
-    </ShopStack.Navigator>
-  );
-}
+const TAB_ICONS: Record<string, IconName> = { Home: 'home', Learn: 'award', Bible: 'book-open', Journal: 'feather', Shop: 'shopping-bag' };
 
 function MainTabs() {
+  const { c } = useTheme();
+  const insets = useSafeAreaInsets();
   return (
-    <Tabs.Navigator screenOptions={{ ...screenOptions, tabBarActiveTintColor: colors.purple }}>
-      <Tabs.Screen name="HomeTab" component={HomeScreen} options={{ title: 'Home' }} />
-      <Tabs.Screen name="CoursesTab" component={CoursesNavigator} options={{ title: 'Courses', headerShown: false }} />
-      <Tabs.Screen name="BibleTab" component={BibleNavigator} options={{ title: 'Bible', headerShown: false }} />
-      <Tabs.Screen name="ShopTab" component={ShopNavigator} options={{ title: 'Shop', headerShown: false }} />
-      <Tabs.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Profile' }} />
+    <Tabs.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: c.brand,
+        tabBarInactiveTintColor: c.muted,
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
+        tabBarIconStyle: { marginBottom: 2 },
+        tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.border, height: 64 + insets.bottom, paddingTop: 6, paddingBottom: Math.max(insets.bottom, 6) },
+        tabBarIcon: ({ color, focused }) => <Icon name={TAB_ICONS[route.name]} size={focused ? 23 : 21} color={color} />,
+      })}
+    >
+      <Tabs.Screen name="Home" component={HomeScreen} />
+      <Tabs.Screen name="Learn" component={CoursesScreen} />
+      <Tabs.Screen name="Bible" component={BibleScreen} />
+      <Tabs.Screen name="Journal" component={JournalScreen} />
+      <Tabs.Screen name="Shop" component={ShopScreen} />
     </Tabs.Navigator>
   );
 }
 
-function AuthNavigator() {
+function SignedIn() {
   return (
-    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
-      <AuthStack.Screen name="Login" component={LoginScreen} />
-      <AuthStack.Screen name="Register" component={RegisterScreen} />
-    </AuthStack.Navigator>
+    <Root.Navigator screenOptions={{ headerShown: false, animation: Platform.OS === 'ios' ? 'default' : 'slide_from_right' }}>
+      <Root.Screen name="Tabs" component={MainTabs} />
+      <Root.Screen name="CourseDetail" component={CourseDetailScreen} />
+      <Root.Screen name="Lesson" component={LessonScreen} />
+      <Root.Screen name="Quiz" component={QuizScreen} />
+      <Root.Screen name="BibleChapter" component={BibleChapterScreen} />
+      <Root.Screen name="BibleSearch" component={BibleSearchScreen} />
+      <Root.Screen name="JournalEntry" component={JournalEntryScreen} options={{ presentation: 'modal' }} />
+      <Root.Screen name="PrayerWall" component={PrayerWallScreen} />
+      <Root.Screen name="Product" component={ProductScreen} />
+      <Root.Screen name="Cart" component={CartScreen} />
+      <Root.Screen name="Profile" component={ProfileScreen} />
+    </Root.Navigator>
+  );
+}
+
+function SignedOut({ onboarded }: { onboarded: boolean }) {
+  return (
+    <Auth.Navigator screenOptions={{ headerShown: false }} initialRouteName={onboarded ? 'Login' : 'Onboarding'}>
+      <Auth.Screen name="Onboarding" component={OnboardingScreen} />
+      <Auth.Screen name="Login" component={LoginScreen} />
+      <Auth.Screen name="Register" component={RegisterScreen} />
+    </Auth.Navigator>
   );
 }
 
 export default function RootNavigator() {
   const { user, loading } = useAuth();
+  const { c, isDark } = useTheme();
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -91,20 +98,18 @@ export default function RootNavigator() {
   }, []);
 
   if (loading || onboarded === null) {
+    // Branded splash while the session is restored.
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.black }}>
-        <ActivityIndicator size="large" color={colors.gold} />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.bg }}>
+        <Logo size={96} />
       </View>
     );
   }
 
-  if (! onboarded) {
-    return <OnboardingScreen onDone={() => setOnboarded(true)} />;
-  }
-
+  const base = isDark ? DarkTheme : DefaultTheme;
   return (
-    <NavigationContainer>
-      {user ? <MainTabs /> : <AuthNavigator />}
+    <NavigationContainer theme={{ ...base, colors: { ...base.colors, background: c.bg, card: c.surface, border: c.border, primary: c.brand, text: c.text } }}>
+      {user ? <SignedIn /> : <SignedOut onboarded={onboarded} />}
     </NavigationContainer>
   );
 }

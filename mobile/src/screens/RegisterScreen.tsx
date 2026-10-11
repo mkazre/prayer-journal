@@ -1,50 +1,44 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { Pressable, Text } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { colors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { Button, Field } from '../components/ui';
+import AuthLayout from './AuthLayout';
 
 export default function RegisterScreen({ navigation }: any) {
   const { register } = useAuth();
+  const { c } = useTheme();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  async function handleRegister() {
+  async function submit() {
+    if (username.trim().length < 3) return setError('Choose a username of at least 3 characters.');
+    if (! /\S+@\S+\.\S+/.test(email)) return setError('Enter a valid email address.');
+    if (password.length < 8) return setError('Use at least 8 characters for your password.');
     setBusy(true);
+    setError('');
     try {
-      await register(username, email, password);
+      await register(username.trim(), email.trim(), password);
     } catch (e: any) {
-      Alert.alert('Registration failed', e.message ?? 'Please check your details.');
+      setError(e.message);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create your account</Text>
-
-      <TextInput style={styles.input} placeholder="Username" autoCapitalize="none" value={username} onChangeText={setUsername} />
-      <TextInput style={styles.input} placeholder="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
-      <TextInput style={styles.input} placeholder="Password (min 8 characters)" secureTextEntry value={password} onChangeText={setPassword} />
-
-      <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={busy}>
-        {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>Register</Text>}
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-        <Text style={styles.link}>Already have an account? Log in</Text>
-      </TouchableOpacity>
-    </View>
+    <AuthLayout title="Create your account" subtitle="Free forever. Your journal stays private.">
+      <Field label="Username" icon="user" value={username} onChangeText={setUsername} autoCapitalize="none" placeholder="e.g. grace" />
+      <Field label="Email" icon="mail" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="you@example.com" />
+      <Field label="Password" icon="lock" value={password} onChangeText={setPassword} secureTextEntry placeholder="At least 8 characters" />
+      {error ? <Text style={{ color: c.danger, fontSize: 14 }}>{error}</Text> : null}
+      <Button title="Create account" icon="user-plus" onPress={submit} loading={busy} />
+      <Pressable onPress={() => navigation.navigate('Login')} style={{ alignItems: 'center', paddingVertical: 6 }}>
+        <Text style={{ color: c.muted }}>Already a member? <Text style={{ color: c.brand, fontWeight: '700' }}>Sign in</Text></Text>
+      </Pressable>
+    </AuthLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg, padding: 24, justifyContent: 'center' },
-  title: { fontSize: 24, fontWeight: '700', color: colors.purpleDark, textAlign: 'center', marginBottom: 24 },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 14, marginBottom: 12, backgroundColor: colors.white },
-  button: { backgroundColor: colors.purple, borderRadius: 10, padding: 14, alignItems: 'center', marginTop: 8 },
-  buttonText: { color: colors.white, fontWeight: '700', fontSize: 16 },
-  link: { color: colors.purple, textAlign: 'center', marginTop: 16 },
-});

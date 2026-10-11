@@ -55,3 +55,21 @@ Events::on('pre_system', static function (): void {
         }
     }
 });
+
+/*
+ * After sign-in, move anything a visitor put in their cart as a guest into
+ * their account's cart, and make sure they have a profile row.
+ */
+Events::on('login', static function ($user): void {
+    try {
+        (new \App\Modules\Shop\Models\CartModel())->mergeGuestCart((int) $user->id, session()->get('cart_key'));
+    } catch (\Throwable $e) {
+        log_message('error', 'Cart merge failed: ' . $e->getMessage());
+    }
+});
+
+Events::on('register', static function ($user): void {
+    if (! $user->inGroup(...array_keys(config('AuthGroups')->groups))) {
+        $user->addGroup(config('AuthGroups')->defaultGroup);
+    }
+});

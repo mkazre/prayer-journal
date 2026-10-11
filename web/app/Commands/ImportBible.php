@@ -90,7 +90,7 @@ class ImportBible extends BaseCommand
                         'book_id' => $bookId,
                         'chapter' => $chapterIndex + 1,
                         'verse'   => $verseIndex + 1,
-                        'text'    => $text,
+                        'text'    => \App\Libraries\Scripture::cleanKjv($text),
                     ];
                 }
             }

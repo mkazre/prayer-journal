@@ -9,7 +9,7 @@ class ProductVariantModel extends Model
     protected $table         = 'product_variants';
     protected $primaryKey    = 'id';
     protected $returnType    = 'array';
-    protected $allowedFields = ['product_id', 'sku', 'option_name', 'price_cents', 'currency', 'weight_grams'];
+    protected $allowedFields = ['product_id', 'sku', 'option_name', 'price_cents', 'currency', 'weight_grams', 'compare_at_cents', 'option1', 'option2', 'option3', 'position', 'image_path', 'digital_file_path', 'is_active'];
     protected $useTimestamps = true;
 
     public function stockOnHand(int $variantId): int
