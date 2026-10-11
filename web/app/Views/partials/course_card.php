@@ -32,7 +32,7 @@ $href     = $href ?? site_url('courses/' . $c['slug']);
             <div class="row between text-xs text-muted"><span><?= (int) $progress ?>% complete</span><span class="text-brand fw-600">Continue <?= icon('arrow-right') ?></span></div>
         <?php else : ?>
             <div class="course-foot">
-                <span class="text-sm text-muted"><?= icon('users') ?> <?= number_format((int) ($c['student_count'] ?? 0)) ?> learners</span>
+                <span class="text-sm text-muted"><?= icon('users') ?> <?= number_format((int) ($c['student_count'] ?? 0)) ?> <?= (int) ($c['student_count'] ?? 0) === 1 ? 'learner' : 'learners' ?></span>
                 <span class="price <?= (int) $c['price_cents'] === 0 ? 'price-free' : '' ?>"><?= price_label((int) $c['price_cents'], $c['currency'] ?? null) ?></span>
             </div>
         <?php endif ?>

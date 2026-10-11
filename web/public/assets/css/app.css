@@ -782,7 +782,7 @@ body.player-collapsed .lesson-nav { left: 0; }
 .chapter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: .45rem; }
 .chapter-grid a { display: grid; place-items: center; aspect-ratio: 1; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text) !important; font-weight: 600; font-size: .92rem; }
 .chapter-grid a:hover, .chapter-grid a.is-active { background: var(--brand); border-color: var(--brand); color: #fff !important; }
-.search-hit mark { background: var(--hl-yellow); color: inherit; padding: 0 .1em; border-radius: 3px; }
+.search-hit mark, mark { background: var(--hl-yellow); color: inherit; padding: 0 .1em; border-radius: 3px; }
 .plan-card .progress { margin-top: .75rem; }
 .day-list { display: grid; gap: .5rem; }
 .day-item { display: flex; align-items: center; gap: .85rem; padding: .75rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
