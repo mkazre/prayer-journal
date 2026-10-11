@@ -77,7 +77,9 @@ class Filters extends BaseFilters
     public array $globals = [
         'before' => [
             // 'honeypot',
-            // 'csrf',
+            // Webhooks are verified by signature; the API authenticates with
+            // bearer tokens, not cookies, so neither can carry a CSRF token.
+            'csrf' => ['except' => ['webhooks/*', 'api/*']],
             // 'invalidchars',
         ],
         'after' => [

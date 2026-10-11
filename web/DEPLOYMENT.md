@@ -2,7 +2,7 @@
 
 ## 1. Server requirements
 
-- PHP 8.1+ with extensions: `intl`, `mbstring`, `mysqli` (or `pdo_mysql`), `curl`, `gd`, `json`
+- PHP 8.2+ with extensions: `intl`, `mbstring`, `mysqli` (or `pdo_mysql`), `curl`, `gd`, `json`
 - MySQL 8 (InnoDB) — a real server, not SQLite (SQLite was local-dev-only)
 - Composer available on the server, or upload `vendor/` from a local `composer install --no-dev`
 - HTTPS certificate for the subdomain (required for Stripe/PayFast to work correctly and for secure cookies)
