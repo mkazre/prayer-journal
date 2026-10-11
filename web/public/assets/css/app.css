@@ -928,3 +928,8 @@ a.card.continue-card, .continue-card { display: grid; grid-template-columns: 160
 .continue-card .course-cover { border-radius: var(--radius); aspect-ratio: 16 / 10; }
 .continue-card .course-cover .cover-art span { font-size: .95rem; }
 @media (max-width: 560px) { a.card.continue-card, .continue-card { grid-template-columns: 1fr; } }
+
+/* Utilities used by Studio admin pages */
+.ml-auto { margin-left: auto; }
+.h-sm { font-family: var(--font-body); font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: .45rem; margin: 0 0 .75rem; }
+.h-sm .icon { color: var(--brand); }

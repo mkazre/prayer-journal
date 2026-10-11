@@ -61,7 +61,7 @@ $minutes   = (int) $lesson['duration_mins'] ?: reading_minutes($lesson['content'
                         <div class="prompt-card" data-autosave-scope>
                             <div class="prompt-card-head">
                                 <span class="kind-icon <?= $kClass ?>"><?= icon($kIcon) ?></span>
-                                <div class="grow"><h4><?= esc($p['label']) ?></h4><?php if ($p['hint']) : ?><div class="hint"><?= esc($p['hint']) ?></div><?php endif ?></div>
+                                <div class="grow"><h4><?= esc($p['label']) ?></h4><?php if ($p['hint']) : ?><div class="help"><?= esc($p['hint']) ?></div><?php endif ?></div>
                             </div>
                             <textarea class="textarea" name="body" aria-label="<?= esc($p['label'], 'attr') ?>" placeholder="<?= $p['kind'] === 'prayer' ? 'Lord, I bring before You…' : ($p['kind'] === 'gratitude' ? 'Today I am thankful for…' : 'What is God saying to you?') ?>"
                                 data-autosave-url="<?= site_url('study/' . $course['slug'] . '/lesson/' . $lesson['id'] . '/journal') ?>"
