@@ -705,7 +705,7 @@ body.player-collapsed .lesson-nav { left: 0; }
 .drop-placeholder { height: 2.6rem; border: 2px dashed var(--brand-500); border-radius: var(--radius-sm); background: var(--brand-softer); margin: .2rem 0; }
 
 /* Rich text editor */
-.editor { border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+.editor { border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); overflow: clip; }
 .editor:focus-within { border-color: var(--brand-500); box-shadow: var(--ring); }
 .editor-toolbar { display: flex; flex-wrap: wrap; gap: 2px; padding: .4rem; border-bottom: 1px solid var(--border); background: var(--surface-2); position: sticky; top: 60px; z-index: 4; }
 .editor-toolbar button { display: inline-grid; place-items: center; min-width: 2rem; height: 2rem; padding: 0 .4rem; border: 0; border-radius: 6px; background: none; color: var(--text-2); cursor: pointer; font: 700 .8rem var(--font-body); }

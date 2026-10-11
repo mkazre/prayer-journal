@@ -265,7 +265,7 @@
             var preview = zone.getAttribute('data-preview') && doc.getElementById(zone.getAttribute('data-preview'));
             if (preview && input.files[0] && /^image\//.test(input.files[0].type)) {
                 var img = preview.tagName === 'IMG' ? preview : preview.querySelector('img');
-                if (img) { img.src = URL.createObjectURL(input.files[0]); preview.hidden = false; }
+                if (img) { img.src = URL.createObjectURL(input.files[0]); img.hidden = false; preview.hidden = false; var art = preview.querySelector(".cover-art"); if (art) { art.remove(); } }
             }
         });
     });
