@@ -933,3 +933,14 @@ a.card.continue-card, .continue-card { display: grid; grid-template-columns: 160
 .ml-auto { margin-left: auto; }
 .h-sm { font-family: var(--font-body); font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: .45rem; margin: 0 0 .75rem; }
 .h-sm .icon { color: var(--brand); }
+.items-end { align-items: flex-end; }
+.pt-2 { padding-top: 1rem; }
+@media (max-width: 1000px) { .split-reverse > aside { order: -1; } }
+.list-check { list-style: none; padding: 0; display: grid; gap: .45rem; }
+.list-check li { position: relative; padding-left: 1.5rem; }
+.list-check li::before { content: ""; position: absolute; left: .1rem; top: .45em; width: .7rem; height: .4rem; border-left: 2px solid var(--success); border-bottom: 2px solid var(--success); transform: rotate(-45deg); }
+.testimony { margin: 0; display: flex; gap: .6rem; padding: .85rem 1rem; border-radius: var(--radius-sm, 10px); background: color-mix(in srgb, var(--success) 9%, transparent); font-family: var(--font-read); font-style: italic; }
+.testimony .icon { color: var(--success); flex: none; margin-top: .2rem; }
+.d-block { display: block; }
+.reading-text { font-family: var(--font-read); line-height: 1.6; margin-top: .2rem; }
+.feature-icon.feature-icon-sm { width: 2.25rem; height: 2.25rem; border-radius: 10px; margin: 0; flex: none; }
