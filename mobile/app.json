@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "Prayer Journal",
+    "slug": "prayer-journal-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "prayerjournal",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#16121C"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.prayerjournal.app"
+    },
+    "android": {
+      "package": "com.prayerjournal.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#4B1E82",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
