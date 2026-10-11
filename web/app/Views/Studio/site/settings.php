@@ -65,7 +65,7 @@ $logo       = $values['logo_path'] ?? '';
                                 <?php elseif ($type === 'color') : ?>
                                     <div class="row row-nowrap gap-sm"><input type="color" id="s-<?= $key ?>" name="<?= $key ?>" value="<?= esc($v ?: ($key === 'brand_color' ? '#4b1e82' : '#c9a227'), 'attr') ?>" style="width:48px;height:40px;padding:0;border:1px solid var(--border);border-radius:8px;background:none"><span class="text-sm text-muted"><?= esc($v ?: 'Default') ?></span></div>
                                 <?php else : ?>
-                                    <input class="input" id="s-<?= $key ?>" type="<?= $type === 'number' ? 'number' : ($type === 'email' ? 'email' : 'text') ?>" name="<?= $key ?>" value="<?= esc($v, 'attr') ?>">
+                                    <input class="input" id="s-<?= $key ?>" type="<?= $type === 'number' ? 'number' : ($type === 'email' ? 'email' : 'text') ?>" name="<?= $key ?>" value="<?= esc($v, 'attr') ?>" placeholder="<?= esc(['smtp_port' => '465', 'reminder_after_days' => '3', 'reminder_repeat_days' => '7', 'reminder_max' => '4', 'reminder_hour' => '9', 'mail_from_name' => site_name(), 'mail_from_email' => \App\Libraries\Mailer::fromEmail(), 'smtp_host' => 'mail.' . preg_replace('/^www\./', '', (string) parse_url(base_url(), PHP_URL_HOST))][$key] ?? '', 'attr') ?>">
                                 <?php endif ?>
                             <?php endif ?>
                             <?php if ($help) : ?><p class="help"><?= esc($help) ?></p><?php endif ?>

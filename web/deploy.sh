@@ -121,6 +121,17 @@ spark db:seed ShopStarterSeeder
 
 spark cache:clear >/dev/null 2>&1 || true
 
+# --- Scheduler: emails, membership billing checks, learning reminders ---------
+CRON_LINE="*/5 * * * * cd $APP_DIR && $PHP_BIN spark app:cron >/dev/null 2>&1"
+if command -v crontab >/dev/null 2>&1; then
+    ( crontab -l 2>/dev/null | grep -v 'spark app:cron' ; echo "$CRON_LINE" ) | crontab - \
+        && say "Scheduler installed (runs every 5 minutes)" \
+        || warn "Could not add the cron job automatically. Add it in cPanel > Cron Jobs: $CRON_LINE"
+else
+    warn "Add this in cPanel > Cron Jobs (Once Per Five Minutes): $CRON_LINE"
+fi
+spark app:cron >/dev/null 2>&1 || true
+
 # --- Point the main domain at web/public ---------------------------------------
 PUBLIC_HTML="$HOME/public_html"
 if [ "$FIRST_RUN" = 1 ] && [ -t 0 ] && [ ! -L "$PUBLIC_HTML" ]; then

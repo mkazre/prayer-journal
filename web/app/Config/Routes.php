@@ -44,6 +44,7 @@ $routes->group('study', ['filter' => 'session'], static function ($routes) use (
     $routes->get('(:segment)', $lms . 'StudyController::show/$1');
     $routes->get('(:segment)/notes', $lms . 'StudyController::notes/$1');
     $routes->get('(:segment)/lesson/(:num)', $lms . 'StudyController::lesson/$1/$2');
+    $routes->get('(:segment)/media/(:num)', $lms . 'StudyController::media/$1/$2');
     $routes->post('(:segment)/lesson/(:num)/complete', $lms . 'StudyController::completeLesson/$1/$2');
     $routes->post('(:segment)/lesson/(:num)/note', $lms . 'StudyController::saveNote/$1/$2');
     $routes->post('(:segment)/lesson/(:num)/journal', $lms . 'StudyController::saveJournal/$1/$2');

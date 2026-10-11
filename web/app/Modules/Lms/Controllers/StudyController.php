@@ -375,6 +375,7 @@ class StudyController extends BaseController
         if (! $enrollment && \App\Modules\Lms\Services\CourseAccess::lapsed($course, $this->userId()) && ! $model->isInstructor((int) $course['id'], $this->userId())) {
             throw new \CodeIgniter\HTTP\Exceptions\RedirectException(redirect()->to(site_url('pricing'))->with('error', 'Your membership is not active, so this course is paused. Renew to continue where you left off — your progress is saved.'));
         }
+        self::protect($course);
         if (EnrollmentModel::isActive($enrollment)) {
             if ($course['status'] !== 'published' && ! $model->isInstructor((int) $course['id'], $this->userId())) {
                 $this->notFound();
@@ -392,6 +393,43 @@ class StudyController extends BaseController
         }
 
         throw new \CodeIgniter\HTTP\Exceptions\RedirectException(redirect()->to(site_url('courses/' . $slug))->with('info', 'Enroll to start this course.'));
+    }
+
+    /**
+     * Copy protection (Studio → course settings, on by default): blocks
+     * copying, right-click, saving and printing in the player and adds a
+     * faint watermark with the learner's name and email.
+     */
+    public static function protect(array $course): void
+    {
+        if (! CourseModel::settings($course)['copy_protection']) {
+            return;
+        }
+        $user = auth()->user();
+        service('renderer')->setVar('protect', true)->setVar('watermark', $user ? display_name() . ' · ' . $user->email : '');
+    }
+
+    /**
+     * Streams a lesson's audio/document only to people who may study it, so
+     * protected files are not handed out as plain public links.
+     */
+    public function media(string $slug, int $lessonId)
+    {
+        [$course, $enrollment, $preview] = $this->access($slug);
+        $lesson = $this->assertLesson($course, $lessonId);
+        $path   = (string) $lesson['attachment_path'];
+        $file   = realpath(FCPATH . $path) ?: '';
+        if ($path === '' || ! str_starts_with($file, realpath(FCPATH . 'uploads') ?: "\0") || ! is_file($file)) {
+            $this->notFound();
+        }
+        $mime = mime_content_type($file) ?: 'application/octet-stream';
+
+        return $this->response
+            ->setHeader('Content-Type', $mime)
+            ->setHeader('Content-Disposition', 'inline; filename="' . preg_replace('/[^A-Za-z0-9._-]/', '_', basename($file)) . '"')
+            ->setHeader('Cache-Control', 'private, no-store')
+            ->setHeader('X-Content-Type-Options', 'nosniff')
+            ->setBody((string) file_get_contents($file));
     }
 
     private function previewEnrollment(array $course): array

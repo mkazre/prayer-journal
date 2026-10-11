@@ -9,6 +9,7 @@ import { Quiz, QuizResult } from '../api/types';
 import { type } from '../theme/colors';
 import Icon from '../components/Icon';
 import { Badge, Button, Card, ErrorState, IconTile, Loading, Screen } from '../components/ui';
+import { useContentProtection } from '../hooks/useContentProtection';
 
 type Answers = Record<number, number | number[] | string>;
 
@@ -20,6 +21,7 @@ export default function QuizScreen({ route, navigation }: any) {
   const [answers, setAnswers] = useState<Answers>({});
   const [result, setResult] = useState<QuizResult | null>(null);
   const [busy, setBusy] = useState(false);
+  useContentProtection(data?.protected, `quiz-${quizId}`);
 
   if (loading) return <Screen title="Quiz" back><Loading /></Screen>;
   if (error || ! data) return <Screen title="Quiz" back><ErrorState message={error ?? ''} onRetry={refresh} /></Screen>;

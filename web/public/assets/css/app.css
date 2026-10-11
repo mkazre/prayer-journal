@@ -944,3 +944,15 @@ a.card.continue-card, .continue-card { display: grid; grid-template-columns: 160
 .d-block { display: block; }
 .reading-text { font-family: var(--font-read); line-height: 1.6; margin-top: .2rem; }
 .feature-icon.feature-icon-sm { width: 2.25rem; height: 2.25rem; border-radius: 10px; margin: 0; flex: none; }
+
+/* ---------- Copy protection (course setting) ---------- */
+body.protect { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+body.protect input, body.protect textarea, body.protect select, body.protect [contenteditable="true"], body.protect .allow-select { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+body.protect img, body.protect video, body.protect audio { -webkit-user-drag: none; user-drag: none; }
+.protect-watermark { position: fixed; inset: 0; z-index: 60; pointer-events: none; overflow: hidden; opacity: .055; }
+.protect-watermark span { position: absolute; white-space: nowrap; font: 600 15px/1 var(--font-body); color: var(--text); transform: rotate(-24deg); }
+.protect-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 90; background: var(--text); color: var(--bg); padding: .6rem 1rem; border-radius: 999px; font-size: .88rem; box-shadow: var(--shadow-lg, 0 10px 30px rgba(0,0,0,.2)); }
+@media print {
+    body.protect > *:not(.protect-print) { display: none !important; }
+    body.protect::after { content: "This course content is protected and cannot be printed."; display: block; padding: 3rem; font: 600 18px/1.5 sans-serif; text-align: center; }
+}

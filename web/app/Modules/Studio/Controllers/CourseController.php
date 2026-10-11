@@ -148,6 +148,7 @@ class CourseController extends StudioController
                 'journal'               => ! empty($p['journal']),
                 'show_progress'         => ! empty($p['show_progress']),
                 'preview_public'        => ! empty($p['preview_public']),
+                'copy_protection'       => ! empty($p['copy_protection']),
                 'enrollment_limit'      => ($p['enrollment_limit'] ?? '') !== '' ? max(1, (int) $p['enrollment_limit']) : null,
                 'access_days'           => ($p['access_days'] ?? '') !== '' ? max(1, (int) $p['access_days']) : null,
                 'brand_color'           => $hex($p['brand_color'] ?? '', '#4b1e82'),

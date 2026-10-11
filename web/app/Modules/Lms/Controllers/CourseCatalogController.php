@@ -103,6 +103,8 @@ class CourseCatalogController extends BaseController
             return redirect()->to(site_url('study/' . $slug . '/lesson/' . $lessonId));
         }
 
+        StudyController::protect($course);
+
         return view('Lms/catalog/preview', [
             'title'    => $lesson['title'] . ' — ' . $course['title'],
             'course'   => $course,

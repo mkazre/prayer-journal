@@ -468,3 +468,53 @@
     $$('[data-flash]').forEach(function (el) { PJ.toast(el.getAttribute('data-flash'), el.getAttribute('data-flash-type') || 'success'); el.remove(); });
     $$('[data-autofocus-end]').forEach(function (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); });
 })();
+
+/* ---------- Copy protection (enabled per course) ---------- */
+(function () {
+    var body = document.body;
+    if (!body || !body.classList.contains('protect')) { return; }
+    var editable = function (el) { return el && el.closest && el.closest('input, textarea, select, [contenteditable="true"], .allow-select'); };
+    var hint;
+    var notice = function () {
+        if (hint) { return; }
+        hint = document.createElement('div');
+        hint.className = 'protect-toast';
+        hint.textContent = 'This course content is protected.';
+        body.appendChild(hint);
+        setTimeout(function () { hint.remove(); hint = null; }, 1800);
+    };
+    document.addEventListener('contextmenu', function (e) { if (!editable(e.target)) { e.preventDefault(); notice(); } });
+    ['copy', 'cut'].forEach(function (t) {
+        document.addEventListener(t, function (e) { if (!editable(e.target)) { e.preventDefault(); notice(); } });
+    });
+    document.addEventListener('dragstart', function (e) { if (!editable(e.target)) { e.preventDefault(); } });
+    document.addEventListener('keydown', function (e) {
+        var k = (e.key || '').toLowerCase(), mod = e.ctrlKey || e.metaKey;
+        var inField = editable(e.target);
+        // Save, print, view source and developer tools are blocked everywhere;
+        // copy/cut/select-all only outside the learner's own writing boxes.
+        if ((mod && ['s', 'p', 'u'].indexOf(k) > -1) || k === 'f12' || (mod && e.shiftKey && ['i', 'j', 'c'].indexOf(k) > -1) || (!inField && mod && ['c', 'x', 'a'].indexOf(k) > -1)) {
+            e.preventDefault();
+            notice();
+        }
+    });
+    window.addEventListener('beforeprint', notice);
+    // Faint repeating watermark with the learner's name and email.
+    var wm = document.querySelector('.protect-watermark');
+    if (wm && wm.dataset.text) {
+        var draw = function () {
+            wm.innerHTML = '';
+            for (var y = -40; y < window.innerHeight + 80; y += 140) {
+                for (var x = -60; x < window.innerWidth + 200; x += 340) {
+                    var s = document.createElement('span');
+                    s.textContent = wm.dataset.text;
+                    s.style.left = (x + (y / 140 % 2 ? 170 : 0)) + 'px';
+                    s.style.top = y + 'px';
+                    wm.appendChild(s);
+                }
+            }
+        };
+        draw();
+        window.addEventListener('resize', draw);
+    }
+})();

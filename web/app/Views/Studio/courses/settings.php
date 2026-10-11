@@ -33,6 +33,7 @@ $kinds = \App\Modules\Lms\Models\JournalEntryModel::KINDS;
                 <?= $sw('reviews', 'Course reviews', 'Enrolled learners can rate and review the course.') ?>
                 <?= $sw('show_progress', 'Show progress to learners') ?>
                 <?= $sw('preview_public', 'Free previews for visitors', 'Lessons marked "preview" can be read without an account.') ?>
+                <?= $sw('copy_protection', 'Copy protection', 'Blocks right-click, copying, saving, printing and media downloads, adds a faint watermark with the learner\'s name and email, and blocks screenshots in the mobile app. Learners can still type in their own journal boxes.') ?>
             </section>
             <section class="card card-body">
                 <h3><?= icon('feather') ?> Default journaling prompts</h3>

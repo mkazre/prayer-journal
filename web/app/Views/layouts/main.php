@@ -2,7 +2,8 @@
 <head>
     <?= $this->include('partials/head') ?>
 </head>
-<body class="<?= esc($bodyClass ?? '', 'attr') ?>">
+<body class="<?= esc(trim(($bodyClass ?? '') . (! empty($protect) ? ' protect' : '')), 'attr') ?>"<?= ! empty($protect) ? ' oncopy="return false"' : '' ?>>
+    <?php if (! empty($protect) && ! empty($watermark)) : ?><div class="protect-watermark" aria-hidden="true" data-text="<?= esc($watermark, 'attr') ?>"></div><?php endif ?>
     <a class="sr-only" href="#main">Skip to content</a>
     <?= $this->include('partials/header') ?>
     <?= $this->include('partials/flash') ?>

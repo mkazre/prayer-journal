@@ -132,6 +132,7 @@ class LmsApiController extends BaseApiController
             'prev' => $prev ? ['kind' => $prev['kind'], 'id' => $prev['id'], 'title' => $prev['title']] : null,
             'next' => $next ? ['kind' => $next['kind'], 'id' => $next['id'], 'title' => $next['title'], 'locked' => (bool) $next['locked']] : null,
             'prompts' => $prompts,
+            'protected' => (bool) $settings['copy_protection'],
         ]);
     }
 
@@ -214,6 +215,7 @@ class LmsApiController extends BaseApiController
             'pass_percent' => (int) $quiz['pass_percent'], 'time_limit_mins' => (int) $quiz['time_limit_mins'],
             'attempts_left' => (int) $quiz['max_attempts'] > 0 ? max(0, (int) $quiz['max_attempts'] - $used) : null,
             'best' => $attempts->best($quizId, (int) $this->currentUser()->id),
+            'protected' => (bool) CourseModel::settings($course)['copy_protection'],
             // Correct answers are never sent to the device.
             'questions' => array_map(static fn ($q) => [
                 'id' => (int) $q['id'], 'type' => $q['type'], 'prompt' => $q['prompt'] ?? $q['question'] ?? '', 'points' => (int) $q['points'],
