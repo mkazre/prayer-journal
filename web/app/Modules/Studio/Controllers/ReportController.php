@@ -6,7 +6,7 @@ class ReportController extends StudioController
 {
     public function index(): string
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $db    = db_connect();
         $days  = in_array((int) $this->request->getGet('days'), [7, 30, 90, 365], true) ? (int) $this->request->getGet('days') : 30;
         $since = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));

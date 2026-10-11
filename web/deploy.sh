@@ -96,7 +96,12 @@ fi
 
 # --- Folders the web server writes to -----------------------------------------
 mkdir -p writable/cache writable/logs writable/session writable/uploads public/uploads
-chmod -R u+rwX,go+rX writable public/uploads
+chmod -R u+rwX writable
+# The web server (LiteSpeed/Apache) must be able to pass through the app
+# folders and read web/public. 711 lets it through without listing them;
+# .env stays private (600).
+chmod 711 "$(dirname "$APP_DIR")" "$APP_DIR"
+chmod -R a+rX public
 
 # --- Database -------------------------------------------------------------------
 say "Updating the database"

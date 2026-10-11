@@ -59,7 +59,7 @@ $link = static fn (array $o) => site_url('prayer-requests') . '?' . http_build_q
                         <?php endif ?>
                         <span class="text-sm text-muted"><span data-count><?= (int) $r['prayer_count'] ?></span> <?= (int) $r['prayer_count'] === 1 ? 'person has' : 'people have' ?> prayed</span>
                     </div>
-                    <?php if ($own || is_staff('superadmin', 'admin')) : ?>
+                    <?php if ($own || is_staff('superadmin', 'admin', 'manager')) : ?>
                         <div class="row gap-xs pt-2" style="border-top:1px solid var(--border)">
                             <?php if ($own) : ?>
                                 <?php if ($r['is_answered']) : ?>

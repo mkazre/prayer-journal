@@ -60,7 +60,7 @@
                 </div>
                 <div class="field"><label class="label" for="tags">Tags</label><input class="input" id="tags" name="tags" value="<?= $v('tags') ?>" placeholder="prayer, devotional"></div>
                 <div class="field"><label class="label" for="intro">Intro video URL</label><input class="input" id="intro" name="intro_video_url" value="<?= $v('intro_video_url') ?>" placeholder="YouTube or Vimeo link"></div>
-                <?php if (is_staff('superadmin', 'admin')) : ?><label class="switch"><input type="checkbox" name="is_featured" value="1" <?= $c['is_featured'] ? 'checked' : '' ?>><span class="track"></span>Feature on the home page</label><?php endif ?>
+                <?php if (is_staff('superadmin', 'admin', 'manager')) : ?><label class="switch"><input type="checkbox" name="is_featured" value="1" <?= $c['is_featured'] ? 'checked' : '' ?>><span class="track"></span>Feature on the home page</label><?php endif ?>
             </section>
             <section class="card card-body text-sm">
                 <div class="summary-row"><span>Lessons</span><strong><?= (int) $stats['lesson_count'] ?></strong></div>

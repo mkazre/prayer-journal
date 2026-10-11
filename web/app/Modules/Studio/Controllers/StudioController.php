@@ -17,20 +17,36 @@ abstract class StudioController extends BaseController
         return auth()->user()->inGroup('superadmin', 'admin');
     }
 
+    /**
+     * Managers run the day-to-day business (courses, shop, orders, reports,
+     * moderation) but cannot change site settings or user accounts.
+     */
+    protected function isManager(): bool
+    {
+        return $this->isAdmin() || auth()->user()->inGroup('manager');
+    }
+
     protected function isInstructor(): bool
     {
-        return $this->isAdmin() || auth()->user()->inGroup('instructor');
+        return $this->isManager() || auth()->user()->inGroup('instructor');
     }
 
     protected function isVendor(): bool
     {
-        return $this->isAdmin() || auth()->user()->inGroup('vendor');
+        return $this->isManager() || auth()->user()->inGroup('vendor');
     }
 
     protected function requireAdmin(): void
     {
         if (! $this->isAdmin()) {
             throw new RedirectException(redirect()->to(site_url('studio'))->with('error', 'That area is for administrators.'));
+        }
+    }
+
+    protected function requireManager(): void
+    {
+        if (! $this->isManager()) {
+            throw new RedirectException(redirect()->to(site_url('studio'))->with('error', 'That area is for managers and administrators.'));
         }
     }
 

@@ -85,7 +85,7 @@ class PrayerRequestController extends BaseController
     {
         $model   = new PrayerRequestModel();
         $request = $model->find($id) ?? $this->notFound();
-        if ((int) $request['user_id'] !== $this->userId() && ! is_staff()) {
+        if ((int) $request['user_id'] !== $this->userId() && ! is_staff('superadmin', 'admin', 'manager')) {
             $this->notFound();
         }
         db_connect()->table('prayer_request_prayers')->where('request_id', $id)->delete();

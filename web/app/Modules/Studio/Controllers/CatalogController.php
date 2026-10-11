@@ -12,7 +12,7 @@ class CatalogController extends StudioController
 {
     public function index(): string
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $model = new ProductModel();
 
         return $this->render('shop/catalog', ['title' => 'Collections & categories', 'active' => 'collections', 'collections' => $model->collections(), 'categories' => $model->categories()]);
@@ -20,7 +20,7 @@ class CatalogController extends StudioController
 
     public function saveCollection()
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $db    = db_connect();
         $id    = (int) $this->post('id');
         $title = trim((string) $this->post('title'));
@@ -50,7 +50,7 @@ class CatalogController extends StudioController
 
     public function deleteCollection(int $id)
     {
-        $this->requireAdmin();
+        $this->requireManager();
         db_connect()->table('collections')->where('id', $id)->delete();
 
         return $this->done('Collection deleted. Its products were kept.', [], site_url('studio/collections'));
@@ -58,7 +58,7 @@ class CatalogController extends StudioController
 
     public function saveCategory()
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $db   = db_connect();
         $id   = (int) $this->post('id');
         $name = trim((string) $this->post('name'));
@@ -82,7 +82,7 @@ class CatalogController extends StudioController
 
     public function deleteCategory(int $id)
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $db = db_connect();
         $db->table('products')->where('category_id', $id)->update(['category_id' => null]);
         $db->table('product_categories')->where('parent_id', $id)->update(['parent_id' => null]);

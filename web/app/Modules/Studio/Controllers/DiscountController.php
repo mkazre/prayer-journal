@@ -8,7 +8,7 @@ class DiscountController extends StudioController
 {
     public function index(): string
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $rows = (new DiscountModel())->orderBy('created_at', 'DESC')->findAll();
         foreach ($rows as &$d) {
             $d['problem'] = (new DiscountModel())->problem($d);
@@ -20,7 +20,7 @@ class DiscountController extends StudioController
 
     public function save()
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $model = new DiscountModel();
         $id    = (int) $this->post('id');
         $code  = strtoupper(preg_replace('/[^A-Z0-9_-]/i', '', (string) $this->post('code')));
@@ -58,7 +58,7 @@ class DiscountController extends StudioController
 
     public function toggle(int $id)
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $model = new DiscountModel();
         $d     = $model->find($id) ?? $this->notFound();
         $model->update($id, ['is_active' => $d['is_active'] ? 0 : 1]);
@@ -68,7 +68,7 @@ class DiscountController extends StudioController
 
     public function delete(int $id)
     {
-        $this->requireAdmin();
+        $this->requireManager();
         (new DiscountModel())->delete($id);
 
         return $this->done('Discount deleted.', [], site_url('studio/discounts'));

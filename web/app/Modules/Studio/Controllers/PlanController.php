@@ -8,7 +8,7 @@ class PlanController extends StudioController
 {
     public function index(): string
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $plans = (new SubscriptionPlanModel())->findAll();
         foreach ($plans as &$p) {
             $p['members'] = db_connect()->table('user_subscriptions')->where(['plan_id' => $p['id'], 'status' => 'active'])->countAllResults();
@@ -20,7 +20,7 @@ class PlanController extends StudioController
 
     public function save()
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $name = trim((string) $this->post('name'));
         if ($name === '') {
             return $this->failed('Name the plan.');
@@ -37,7 +37,7 @@ class PlanController extends StudioController
 
     public function toggle(int $id)
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $model = new SubscriptionPlanModel();
         $plan  = $model->find($id) ?? $this->notFound();
         $model->update($id, ['is_active' => $plan['is_active'] ? 0 : 1]);

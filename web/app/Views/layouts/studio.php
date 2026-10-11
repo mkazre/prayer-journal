@@ -1,8 +1,9 @@
 <?php
 $user      = auth()->user();
 $isAdmin   = $user->inGroup('superadmin', 'admin');
-$isTeacher = $isAdmin || $user->inGroup('instructor');
-$isVendor  = $isAdmin || $user->inGroup('vendor');
+$isManager = $isAdmin || $user->inGroup('manager');
+$isTeacher = $isManager || $user->inGroup('instructor');
+$isVendor  = $isManager || $user->inGroup('vendor');
 $active    = $active ?? '';
 $nav = [];
 $nav[] = ['', [['studio', 'Overview', 'layout', 'overview']]];
@@ -15,7 +16,7 @@ if ($isTeacher) {
 }
 if ($isVendor) {
     $shop = [['studio/products', 'Products', 'package', 'products'], ['studio/inventory', 'Inventory', 'boxes', 'inventory']];
-    if ($isAdmin) {
+    if ($isManager) {
         $shop = array_merge($shop, [
             ['studio/orders', 'Orders', 'receipt', 'orders'],
             ['studio/collections', 'Collections', 'layers', 'collections'],
@@ -27,12 +28,13 @@ if ($isVendor) {
     }
     $nav[] = ['Shop', $shop];
 }
-if ($isAdmin) {
-    $nav[] = ['Community & site', [
-        ['studio/prayer', 'Prayer wall', 'hands', 'prayer'],
-        ['studio/users', 'Users & roles', 'shield', 'users'],
-        ['studio/settings', 'Site settings', 'settings', 'settings'],
-    ]];
+if ($isManager) {
+    $site = [['studio/prayer', 'Prayer wall', 'hands', 'prayer']];
+    if ($isAdmin) {
+        $site[] = ['studio/users', 'Users & roles', 'shield', 'users'];
+        $site[] = ['studio/settings', 'Site settings', 'settings', 'settings'];
+    }
+    $nav[] = ['Community & site', $site];
 }
 ?>
 <?= $this->include('partials/html_open') ?>

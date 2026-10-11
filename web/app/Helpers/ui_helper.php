@@ -350,7 +350,7 @@ if (! function_exists('is_staff')) {
         if (! auth()->loggedIn()) {
             return false;
         }
-        $groups = $groups ?: ['superadmin', 'admin', 'instructor', 'vendor'];
+        $groups = $groups ?: ['superadmin', 'admin', 'manager', 'instructor', 'vendor'];
 
         return auth()->user()->inGroup(...$groups);
     }

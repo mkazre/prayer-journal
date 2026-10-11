@@ -8,7 +8,7 @@ class OrderController extends StudioController
 {
     public function index(): string
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $status = (string) $this->request->getGet('status');
         $q      = trim((string) $this->request->getGet('q'));
         $b      = db_connect()->table('orders o')->select('o.*, (SELECT COALESCE(SUM(quantity),0) FROM order_items oi WHERE oi.order_id = o.id) AS units', false);
@@ -28,7 +28,7 @@ class OrderController extends StudioController
 
     public function show(int $id): string
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $orders = new OrderModel();
         $order  = $orders->find($id) ?? $this->notFound();
         $payments = db_connect()->table('payments')->where('order_id', $id)->orderBy('id', 'DESC')->get()->getResultArray();
@@ -42,7 +42,7 @@ class OrderController extends StudioController
 
     public function status(int $id)
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $status = (string) $this->post('status');
         if (! isset(OrderModel::STATUSES[$status])) {
             return $this->failed('Unknown status.');
@@ -54,7 +54,7 @@ class OrderController extends StudioController
 
     public function fulfill(int $id)
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $orders  = new OrderModel();
         $order   = $orders->find($id) ?? $this->notFound();
         $carrier = trim((string) $this->post('carrier'));
@@ -77,7 +77,7 @@ class OrderController extends StudioController
 
     public function note(int $id)
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $orders = new OrderModel();
         $orders->find($id) ?? $this->notFound();
         $note = trim((string) $this->post('note'));

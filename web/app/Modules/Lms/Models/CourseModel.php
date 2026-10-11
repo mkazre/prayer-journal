@@ -161,7 +161,7 @@ class CourseModel extends Model
     public function isInstructor(int $courseId, int $userId): bool
     {
         $user = auth()->getProvider()->findById($userId);
-        if ($user && $user->inGroup('superadmin', 'admin')) {
+        if ($user && $user->inGroup('superadmin', 'admin', 'manager')) {
             return true;
         }
         $course = $this->withDeleted()->find($courseId);

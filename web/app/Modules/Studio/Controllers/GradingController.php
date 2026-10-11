@@ -11,7 +11,7 @@ class GradingController extends StudioController
     public function index(): string
     {
         $this->requireInstructor();
-        $ids    = array_map('intval', array_column((new CourseModel())->manageableBy($this->userId(), $this->isAdmin()), 'id')) ?: [0];
+        $ids    = array_map('intval', array_column((new CourseModel())->manageableBy($this->userId(), $this->isManager()), 'id')) ?: [0];
         $status = (string) ($this->request->getGet('status') ?: 'submitted');
         $rows   = db_connect()->table('assignment_submissions s')
             ->select('s.*, a.title AS assignment_title, a.max_points, a.course_id, c.title AS course_title, u.username')

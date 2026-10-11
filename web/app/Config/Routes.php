@@ -126,7 +126,7 @@ $routes->post('prayer-requests/(:num)/delete', $core . 'PrayerRequestController:
 // Studio: one back office for instructors, vendors and admins.
 // Each controller narrows access further (e.g. orders are admin-only).
 // ---------------------------------------------------------------------
-$routes->group('studio', ['filter' => ['session', 'group:superadmin,admin,instructor,vendor']], static function ($routes) use ($std) {
+$routes->group('studio', ['filter' => ['session', 'group:superadmin,admin,manager,instructor,vendor']], static function ($routes) use ($std) {
     $routes->get('/', $std . 'OverviewController::index');
     $routes->post('uploads', $std . 'UploadController::image');
 
@@ -208,7 +208,11 @@ $routes->group('studio', ['filter' => ['session', 'group:superadmin,admin,instru
     $routes->get('prayer', $std . 'SiteController::prayer');
     $routes->post('prayer/(:num)/delete', $std . 'SiteController::deletePrayer/$1');
     $routes->get('users', $std . 'SiteController::users');
+    $routes->post('users', $std . 'SiteController::createUser');
+    $routes->post('users/(:num)', $std . 'SiteController::updateUser/$1');
     $routes->post('users/(:num)/groups', $std . 'SiteController::userGroups/$1');
+    $routes->post('users/(:num)/suspend', $std . 'SiteController::suspendUser/$1');
+    $routes->post('users/(:num)/delete', $std . 'SiteController::deleteUser/$1');
     $routes->match(['GET', 'POST'], 'settings', $std . 'SiteController::settings');
 });
 

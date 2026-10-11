@@ -78,7 +78,7 @@ $vJson    = array_map(static fn ($x) => ['id' => (int) $x['id'], 'o' => [$x['opt
                 <div class="field"><span class="label">Product type</span><div class="segmented" style="width:100%"><label class="grow"><input type="radio" name="product_type" value="physical" <?= ! $digital ? 'checked' : '' ?>><span style="justify-content:center"><?= icon('package') ?>Physical</span></label><label class="grow"><input type="radio" name="product_type" value="digital" <?= $digital ? 'checked' : '' ?>><span style="justify-content:center"><?= icon('download') ?>Digital</span></label></div></div>
                 <label class="switch phys-only"><input type="checkbox" name="track_inventory" value="1" <?= (int) ($p['track_inventory'] ?? 1) ? 'checked' : '' ?>><span class="track"></span>Track stock</label>
                 <label class="switch phys-only"><input type="checkbox" name="allow_backorder" value="1" <?= ! empty($p['allow_backorder']) ? 'checked' : '' ?>><span class="track"></span>Sell when out of stock</label>
-                <?php if (is_staff('superadmin', 'admin')) : ?><label class="switch"><input type="checkbox" name="is_featured" value="1" <?= ! empty($p['is_featured']) ? 'checked' : '' ?>><span class="track"></span>Featured</label><?php endif ?>
+                <?php if (is_staff('superadmin', 'admin', 'manager')) : ?><label class="switch"><input type="checkbox" name="is_featured" value="1" <?= ! empty($p['is_featured']) ? 'checked' : '' ?>><span class="track"></span>Featured</label><?php endif ?>
             </section>
             <section class="card card-body stack">
                 <h3 class="mb-0">Organisation</h3>

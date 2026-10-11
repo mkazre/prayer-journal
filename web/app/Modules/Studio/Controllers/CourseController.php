@@ -14,7 +14,7 @@ class CourseController extends StudioController
     public function index(): string
     {
         $this->requireInstructor();
-        $courses = (new CourseModel())->manageableBy($this->userId(), $this->isAdmin());
+        $courses = (new CourseModel())->manageableBy($this->userId(), $this->isManager());
         $status  = (string) $this->request->getGet('status');
         if (in_array($status, ['published', 'draft'], true)) {
             $courses = array_values(array_filter($courses, static fn ($c) => $c['status'] === $status));
@@ -90,7 +90,7 @@ class CourseController extends StudioController
             if ($data['access_mode'] === 'free') {
                 $data['price_cents'] = 0;
             }
-            if ($this->isAdmin()) {
+            if ($this->isManager()) {
                 $data['is_featured'] = $this->bool('is_featured');
             }
             try {
@@ -403,7 +403,7 @@ class CourseController extends StudioController
     public function allStudents(): string
     {
         $this->requireInstructor();
-        $ids = array_map('intval', array_column((new CourseModel())->manageableBy($this->userId(), $this->isAdmin()), 'id')) ?: [0];
+        $ids = array_map('intval', array_column((new CourseModel())->manageableBy($this->userId(), $this->isManager()), 'id')) ?: [0];
         $q   = trim((string) $this->request->getGet('q'));
         $b   = db_connect()->table('enrollments e')
             ->select('u.id AS user_id, u.username, ai.secret AS email, COUNT(e.id) AS courses, AVG(e.progress_percent) AS avg_progress, MAX(COALESCE(e.last_activity_at, e.enrolled_at)) AS last_seen', false)
