@@ -238,6 +238,11 @@ class LmsApiController extends BaseApiController
         $result = $attempts->submit($quizId, $userId, (array) ($this->body()['answers'] ?? []), (int) $quiz['pass_percent']);
         (new GradebookModel())->recalculate((int) $course['id'], $userId);
         $progress = Curriculum::recalculate((int) $enrollment['id']);
+        $notes    = array_column(db_connect()->table('quiz_questions')->select('id, explanation')->where('quiz_id', $quizId)->get()->getResultArray(), 'explanation', 'id');
+        foreach ($result['review'] as $qid => &$r) {
+            $r['explanation'] = $notes[$qid] ?? null;
+        }
+        unset($r);
 
         return $this->ok($result + ['progress' => $progress['percent']]);
     }

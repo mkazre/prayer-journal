@@ -102,4 +102,29 @@ class Cors extends BaseConfig
          */
         'maxAge' => 7200,
     ];
+
+    /**
+     * The mobile/web API. It authenticates with bearer tokens (no cookies),
+     * so credentials are never shared. Origins come from CORS_ALLOWED_ORIGINS
+     * (comma-separated); local Expo dev servers are allowed outside production.
+     */
+    public array $api = [
+        'allowedOrigins'         => [],
+        'allowedOriginsPatterns' => [],
+        'supportsCredentials'    => false,
+        'allowedHeaders'         => ['Authorization', 'Content-Type', 'Accept'],
+        'exposedHeaders'         => [],
+        'allowedMethods'         => ['GET', 'POST', 'DELETE', 'OPTIONS'],
+        'maxAge'                 => 7200,
+    ];
+
+    public function __construct()
+    {
+        parent::__construct();
+        $origins = array_values(array_filter(array_map('trim', explode(',', (string) env('CORS_ALLOWED_ORIGINS', '')))));
+        $this->api['allowedOrigins'] = $origins;
+        if (ENVIRONMENT !== 'production') {
+            $this->api['allowedOriginsPatterns'] = ['https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?'];
+        }
+    }
 }

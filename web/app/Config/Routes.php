@@ -225,6 +225,9 @@ $routes->addRedirect('shop-admin/announcement', 'studio/settings');
 // ---------------------------------------------------------------------
 // REST API (for the Expo mobile app)
 // ---------------------------------------------------------------------
+// Preflight requests; the cors filter answers them.
+$routes->options('api/(:any)', static fn () => null);
+
 $routes->group('api/v1', static function ($routes) use ($api) {
     $routes->post('auth/register', $api . 'AuthApiController::register');
     $routes->post('auth/login', $api . 'AuthApiController::login');
@@ -276,5 +279,6 @@ $routes->group('api/v1', ['filter' => 'tokens'], static function ($routes) use (
 
     $routes->get('cart', $api . 'ShopApiController::cart');
     $routes->post('cart/add/(:num)', $api . 'ShopApiController::addToCart/$1');
+    $routes->post('cart/items/(:num)', $api . 'ShopApiController::updateCartItem/$1');
     $routes->post('shop/products/(:num)/wishlist', $api . 'ShopApiController::toggleWishlist/$1');
 });

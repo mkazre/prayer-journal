@@ -115,5 +115,6 @@ class Filters extends BaseFilters
     public array $filters = [
         // 'tokens' is applied per-route-group in Routes.php instead of
         // blanket api/*, since api/v1/auth/* must stay open (no token yet).
+        'cors:api' => ['before' => ['api/*'], 'after' => ['api/*']],
     ];
 }
