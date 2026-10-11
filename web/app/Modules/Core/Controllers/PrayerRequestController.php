@@ -58,11 +58,7 @@ class PrayerRequestController extends BaseController
         $request = $model->find($id) ?? $this->notFound();
         $added   = $model->prayFor($id, $this->userId());
         if ($added && (int) $request['user_id'] !== $this->userId()) {
-            db_connect()->table('notifications')->insert([
-                'user_id' => $request['user_id'], 'type' => 'prayer',
-                'body'    => display_name() . ' prayed for your request.',
-                'created_at' => date('Y-m-d H:i:s'),
-            ]);
+            \App\Libraries\Notify::prayedFor((int) $request['user_id'], (string) $request['body'], display_name());
         }
 
         return $this->done($added ? 'Thank you for praying.' : 'You have already prayed for this request.', ['count' => (int) $request['prayer_count'] + ($added ? 1 : 0), 'prayed' => true], site_url('prayer-requests'));
@@ -85,7 +81,7 @@ class PrayerRequestController extends BaseController
     {
         $model   = new PrayerRequestModel();
         $request = $model->find($id) ?? $this->notFound();
-        if ((int) $request['user_id'] !== $this->userId() && ! is_staff()) {
+        if ((int) $request['user_id'] !== $this->userId() && ! is_staff('superadmin', 'admin', 'manager')) {
             $this->notFound();
         }
         db_connect()->table('prayer_request_prayers')->where('request_id', $id)->delete();

@@ -49,16 +49,20 @@ class AuthGroups extends ShieldAuthGroups
             'title'       => 'Admin',
             'description' => 'Day to day administrators of the site.',
         ],
+        'manager' => [
+            'title'       => 'Manager',
+            'description' => 'Runs courses, the shop, orders, reports and prayer-wall moderation. Cannot change site settings or user accounts.',
+        ],
         'instructor' => [
             'title'       => 'Instructor',
             'description' => 'Creates and manages courses, lessons, quizzes, and grades students.',
         ],
         'student' => [
-            'title'       => 'Student',
-            'description' => 'Enrolls in and studies courses, submits assignments, shops the store.',
+            'title'       => 'Customer',
+            'description' => 'A member of the site: studies courses, keeps a journal, shops the store.',
         ],
         'vendor' => [
-            'title'       => 'Vendor',
+            'title'       => 'Shop assistant',
             'description' => 'Manages their own products and orders in the store.',
         ],
     ];
@@ -105,6 +109,12 @@ class AuthGroups extends ShieldAuthGroups
             'users.create',
             'users.edit',
             'users.delete',
+            'lms.author',
+            'lms.grade',
+            'shop.manage',
+        ],
+        'manager' => [
+            'admin.access',
             'lms.author',
             'lms.grade',
             'shop.manage',

@@ -50,6 +50,8 @@ class CourseModel extends Model
         'completion_message'    => '',
         'default_prompts'       => [],
         'preview_public'        => true,
+        'in_membership'         => false,
+        'copy_protection'       => true,
     ];
 
     public function published()
@@ -161,7 +163,7 @@ class CourseModel extends Model
     public function isInstructor(int $courseId, int $userId): bool
     {
         $user = auth()->getProvider()->findById($userId);
-        if ($user && $user->inGroup('superadmin', 'admin')) {
+        if ($user && $user->inGroup('superadmin', 'admin', 'manager')) {
             return true;
         }
         $course = $this->withDeleted()->find($courseId);

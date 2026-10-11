@@ -213,6 +213,13 @@ class StudyController extends BaseController
             'body'       => $body,
             'created_at' => date('Y-m-d H:i:s'),
         ]);
+        if ($parent) {
+            $author = (int) db_connect()->table('course_qa_threads')->where('id', $parent)->get()->getRow('user_id');
+            if ($author && $author !== $this->userId()) {
+                $lesson = (new LessonModel())->find($lessonId);
+                \App\Libraries\Notify::discussionReply($author, display_name(), (string) ($lesson['title'] ?? 'a lesson'), site_url('study/' . $slug . '/lesson/' . $lessonId) . '#discussion');
+            }
+        }
 
         return redirect()->to(site_url('study/' . $slug . '/lesson/' . $lessonId) . '#discussion')->with('message', 'Comment posted.');
     }
@@ -305,6 +312,7 @@ class StudyController extends BaseController
             }
             $submissions->submit($assignmentId, $this->userId(), $content, $file ?? ($submission['attachment_path'] ?? null));
             Curriculum::recalculate((int) $enrollment['id']);
+            \App\Libraries\Notify::assignmentSubmitted($course, (string) $assignment['title'], $this->userId());
 
             return redirect()->to(site_url('study/' . $slug . '/assignment/' . $assignmentId))->with('message', 'Submitted. Your instructor will review it.');
         }
@@ -363,13 +371,11 @@ class StudyController extends BaseController
         if (! $course) {
             $this->notFound();
         }
-        $enrollments = new EnrollmentModel();
-        $enrollment  = $enrollments->findFor((int) $course['id'], $this->userId());
-
-        if (! EnrollmentModel::isActive($enrollment) && ($course['access_mode'] ?? '') === 'subscription'
-            && (new UserSubscriptionModel())->hasActive($this->userId())) {
-            $enrollment = $enrollments->enroll((int) $course['id'], $this->userId(), 'subscription');
+        $enrollment = \App\Modules\Lms\Services\CourseAccess::resolve($course, $this->userId());
+        if (! $enrollment && \App\Modules\Lms\Services\CourseAccess::lapsed($course, $this->userId()) && ! $model->isInstructor((int) $course['id'], $this->userId())) {
+            throw new \CodeIgniter\HTTP\Exceptions\RedirectException(redirect()->to(site_url('pricing'))->with('error', 'Your membership is not active, so this course is paused. Renew to continue where you left off — your progress is saved.'));
         }
+        self::protect($course);
         if (EnrollmentModel::isActive($enrollment)) {
             if ($course['status'] !== 'published' && ! $model->isInstructor((int) $course['id'], $this->userId())) {
                 $this->notFound();
@@ -381,11 +387,49 @@ class StudyController extends BaseController
         if (! $requireEnrollment && $model->isInstructor((int) $course['id'], $this->userId())) {
             return [$course, null, true];
         }
+        $enrollment = (new EnrollmentModel())->findFor((int) $course['id'], $this->userId());
         if ($enrollment && ! EnrollmentModel::isActive($enrollment)) {
             throw new \CodeIgniter\HTTP\Exceptions\RedirectException(redirect()->to(site_url('courses/' . $slug))->with('error', 'Your access to this course has ended.'));
         }
 
         throw new \CodeIgniter\HTTP\Exceptions\RedirectException(redirect()->to(site_url('courses/' . $slug))->with('info', 'Enroll to start this course.'));
+    }
+
+    /**
+     * Copy protection (Studio → course settings, on by default): blocks
+     * copying, right-click, saving and printing in the player and adds a
+     * faint watermark with the learner's name and email.
+     */
+    public static function protect(array $course): void
+    {
+        if (! CourseModel::settings($course)['copy_protection']) {
+            return;
+        }
+        $user = auth()->user();
+        service('renderer')->setVar('protect', true)->setVar('watermark', $user ? display_name() . ' · ' . $user->email : '');
+    }
+
+    /**
+     * Streams a lesson's audio/document only to people who may study it, so
+     * protected files are not handed out as plain public links.
+     */
+    public function media(string $slug, int $lessonId)
+    {
+        [$course, $enrollment, $preview] = $this->access($slug);
+        $lesson = $this->assertLesson($course, $lessonId);
+        $path   = (string) $lesson['attachment_path'];
+        $file   = realpath(FCPATH . $path) ?: '';
+        if ($path === '' || ! str_starts_with($file, realpath(FCPATH . 'uploads') ?: "\0") || ! is_file($file)) {
+            $this->notFound();
+        }
+        $mime = mime_content_type($file) ?: 'application/octet-stream';
+
+        return $this->response
+            ->setHeader('Content-Type', $mime)
+            ->setHeader('Content-Disposition', 'inline; filename="' . preg_replace('/[^A-Za-z0-9._-]/', '_', basename($file)) . '"')
+            ->setHeader('Cache-Control', 'private, no-store')
+            ->setHeader('X-Content-Type-Options', 'nosniff')
+            ->setBody((string) file_get_contents($file));
     }
 
     private function previewEnrollment(array $course): array

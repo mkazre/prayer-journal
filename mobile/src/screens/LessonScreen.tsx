@@ -11,6 +11,7 @@ import { type } from '../theme/colors';
 import Icon, { IconName } from '../components/Icon';
 import Html from '../components/Html';
 import { Badge, Button, Card, ErrorState, HeaderAction, Loading, Screen } from '../components/ui';
+import { useContentProtection } from '../hooks/useContentProtection';
 
 const KIND_ICON: Record<string, IconName> = { prayer: 'heart', meditation: 'feather', gratitude: 'sunrise', note: 'edit-3' };
 
@@ -20,6 +21,7 @@ export default function LessonScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
   const { data, error, loading, refresh, setData } = useApi<Lesson>(`/study/${slug}/lesson/${lessonId}`, { refetchOnFocus: false });
   const [busy, setBusy] = useState(false);
+  useContentProtection(data?.protected, `lesson-${lessonId}`);
 
   if (loading) return <Screen title="Lesson" back><Loading /></Screen>;
   if (error || ! data) return <Screen title="Lesson" back><ErrorState message={error ?? ''} onRetry={refresh} /></Screen>;

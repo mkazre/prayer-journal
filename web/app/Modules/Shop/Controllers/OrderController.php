@@ -60,7 +60,7 @@ class OrderController extends BaseController
 
     private function canView(array $order): bool
     {
-        if (auth()->loggedIn() && ((int) $order['user_id'] === $this->userId() || is_staff('superadmin', 'admin'))) {
+        if (auth()->loggedIn() && ((int) $order['user_id'] === $this->userId() || is_staff('superadmin', 'admin', 'manager'))) {
             return true;
         }
 

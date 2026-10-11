@@ -98,6 +98,7 @@ export type Lesson = {
   prev: { kind: string; id: number; title: string } | null;
   next: { kind: string; id: number; title: string; locked: boolean } | null;
   prompts: Prompt[];
+  protected: boolean;
 };
 
 export type Quiz = {
@@ -108,6 +109,7 @@ export type Quiz = {
   time_limit_mins: number;
   attempts_left: number | null;
   best: { score_percent: number; passed: number } | null;
+  protected: boolean;
   questions: { id: number; type: 'single' | 'multiple' | 'true_false' | 'short_text'; prompt: string; points: number; options: { id: number; text: string }[] }[];
 };
 

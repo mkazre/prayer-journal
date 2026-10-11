@@ -22,6 +22,18 @@ You need cPanel with **Terminal** and **Git Version Control**. It takes about 10
 5. **Turn on HTTPS.** Make sure **SSL/TLS Status** shows a certificate for your domain. AutoSSL usually handles this automatically.
 6. Open your site, sign in, and go to `/studio`.
 
+7. **Emails.** Go to **Studio → Settings → Emails** and set the sender name and address. For the best inbox delivery:
+   - create that mailbox in cPanel **Email Accounts** (e.g. `hello@timelesswisdomapp.com`)
+   - enter its SMTP details: server `mail.yourdomain.com`, port `465`, SSL, the full email address as username, and its password
+   - turn on **Email Deliverability** (SPF/DKIM) for your domain in cPanel
+   - click **Send me a test email**
+8. **Scheduler.** `deploy.sh` adds the cron job for you; the Emails tab shows "Running" once it has run. If your host blocks it, add this line yourself in cPanel **Cron Jobs** with "Once Per Five Minutes". The Emails tab shows the exact command for your account:
+   ```
+   cd ~/prayer-journal/web && php spark app:cron
+   ```
+   It sends emails, checks memberships (reminders, missed payments, automatic suspension) and sends the daily learning reminders.
+9. **PayFast memberships:** see section 6 below.
+
 **Updating later** (after new changes are pushed to GitHub), run one line in Terminal:
 
 ```bash
@@ -147,6 +159,17 @@ PAYFAST_PASSPHRASE = ...
 PAYFAST_SANDBOX = false
 ```
 
+**PayFast memberships (monthly/yearly):**
+1. In your PayFast dashboard, set a **Salt Passphrase** (Settings → Developer Settings). It is required for subscriptions and for cancelling them, so put the same value in `PAYFAST_PASSPHRASE`.
+2. Make sure **Recurring Billing / Subscriptions** is enabled on your PayFast account.
+3. Create your plans in **Studio → Membership plans** (e.g. "Monthly membership", R99/month).
+4. On a membership course, set Access to "Membership". On a paid course, tick "Also included in membership plans" if it should be included.
+
+PayFast then charges members automatically every month and notifies the site after each payment.
+- **Missed payment:** the member gets a "payment failed" email with a link to update their card, then a final notice, and access is suspended automatically after the 5-day grace period.
+- **Cancelling:** members cancel from **Account → Membership**, and admins from **Studio → Membership plans**.
+- **Testing:** set `PAYFAST_SANDBOX = true` with PayFast's sandbox merchant details and run a full subscription before switching to live.
+
 Webhook URLs to register with each gateway:
 - Stripe: `https://app.yourdomain.com/webhooks/stripe`
 - PayFast: `https://app.yourdomain.com/webhooks/payfast` (set automatically per-transaction, but PayFast also lets you set a default ITN URL in the merchant dashboard)
@@ -175,9 +198,13 @@ Nothing currently requires a scheduled job, but the `jobs` table exists for futu
 ## Before going live
 
 ```bash
-vendor/bin/phpunit    # 38 tests on in-memory SQLite: security, API, LMS, shop and the course import
+vendor/bin/phpunit    # 54 tests on in-memory SQLite: security, API, LMS, shop, memberships, emails, reminders, user management
 ```
 
+- **Copy protection** is on for every course by default. Turn it off per course in **Studio → Course → Settings**.
+  - **Website:** blocks right-click, copying, printing, saving and media downloads, and shows a faint name/email watermark.
+  - **App:** blocks screenshots and screen recording on lessons.
+  - No website can stop a determined person photographing a screen. The watermark makes leaked copies traceable.
 - Do a real sandbox transaction on Stripe and on PayFast before accepting live payments. Amount verification and signatures are implemented but have not been run against real credentials.
 - Replace the placeholder product prices, and review shipping zones and VAT under **Studio → Shipping & tax**.
 - Upload your final logo in **Studio → Settings → Branding**. It is used on every page, in the Studio, on certificates and on printed journals. The mobile app ships with `mobile/assets/logo-mark.png`; replace that file too.

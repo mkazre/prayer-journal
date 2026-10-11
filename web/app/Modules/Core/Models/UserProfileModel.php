@@ -24,10 +24,10 @@ class UserProfileModel extends Model
         $data['updated_at'] = date('Y-m-d H:i:s');
         if ($this->find($userId)) {
             $this->update($userId, $data);
-
-            return;
+        } else {
+            $this->insert(['user_id' => $userId] + $data);
         }
-        $this->insert(['user_id' => $userId] + $data);
+        user_profile($userId, true);
     }
 
     public function savePreferences(int $userId, array $changes): array
@@ -39,7 +39,7 @@ class UserProfileModel extends Model
                 if (in_array($value, self::PREF_OPTIONS[$key], true)) {
                     $prefs[$key] = $value;
                 }
-            } elseif (in_array($key, ['verse_numbers', 'journal_reminders'], true)) {
+            } elseif (in_array($key, ['verse_numbers', 'journal_reminders', 'email_courses', 'email_community', 'email_reminders'], true)) {
                 $prefs[$key] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
             }
         }

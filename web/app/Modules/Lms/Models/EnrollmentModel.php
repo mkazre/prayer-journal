@@ -16,12 +16,20 @@ class EnrollmentModel extends Model
         'source', 'expires_at', 'last_activity_at',
     ];
 
-    public function enroll(int $courseId, int $userId, string $source = 'free'): array
+    public function enroll(int $courseId, int $userId, string $source = 'free', bool $notify = true): array
     {
         $existing = $this->where(['course_id' => $courseId, 'user_id' => $userId])->first();
         if ($existing) {
             if ($existing['status'] === 'revoked') {
                 $this->update($existing['id'], ['status' => 'active', 'source' => $source]);
+
+                return $this->find($existing['id']);
+            }
+            // Full access (purchase, membership, free) replaces module-only or
+            // lapsed-membership access; a module purchase never downgrades.
+            $partial = in_array($existing['source'], ['module', 'subscription'], true);
+            if ($partial && $source !== 'module' && $source !== $existing['source']) {
+                $this->update($existing['id'], ['source' => $source]);
 
                 return $this->find($existing['id']);
             }
@@ -42,6 +50,10 @@ class EnrollmentModel extends Model
             'expires_at'       => $expires,
             'last_activity_at' => date('Y-m-d H:i:s'),
         ], true);
+
+        if ($notify && $course) {
+            \App\Libraries\Notify::enrolled($userId, $course);
+        }
 
         return $this->find($id);
     }

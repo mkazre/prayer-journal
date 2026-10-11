@@ -22,14 +22,14 @@ $minutes   = (int) $lesson['duration_mins'] ?: reading_minutes($lesson['content'
             <?php if ($embed) : ?>
                 <div class="video-embed mb-3"><iframe src="<?= esc($embed, 'attr') ?>" title="<?= esc($lesson['title'], 'attr') ?>" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
             <?php elseif ($lesson['video_url'] && preg_match('/\.(mp4|webm)(\?|$)/i', $lesson['video_url'])) : ?>
-                <div class="video-embed mb-3"><video src="<?= esc($lesson['video_url'], 'attr') ?>" controls playsinline preload="metadata"></video></div>
+                <div class="video-embed mb-3"><video src="<?= esc($lesson['video_url'], 'attr') ?>" controls playsinline preload="metadata"<?= ! empty($protect) ? ' controlsList="nodownload noremoteplayback" disablePictureInPicture oncontextmenu="return false"' : '' ?>></video></div>
             <?php endif ?>
             <?php if ($type === 'audio' && $lesson['attachment_path']) : ?>
-                <div class="card card-body mb-3 row"><?= icon('headphones', 'icon-lg text-brand') ?><audio class="grow" controls preload="metadata" src="<?= base_url($lesson['attachment_path']) ?>" style="width:100%"></audio></div>
+                <div class="card card-body mb-3 row"><?= icon('headphones', 'icon-lg text-brand') ?><audio class="grow" controls preload="metadata" src="<?= ! empty($protect) ? site_url('study/' . $course['slug'] . '/media/' . $lesson['id']) : base_url($lesson['attachment_path']) ?>" style="width:100%"<?= ! empty($protect) ? ' controlsList="nodownload" oncontextmenu="return false"' : '' ?>></audio></div>
             <?php elseif ($lesson['attachment_path'] && str_ends_with(strtolower($lesson['attachment_path']), '.pdf')) : ?>
                 <div class="card mb-3" style="overflow:hidden">
-                    <iframe src="<?= base_url($lesson['attachment_path']) ?>#view=FitH" title="Document" style="width:100%;height:70vh;border:0;display:block"></iframe>
-                    <div class="card-footer row between"><span class="text-sm"><?= icon('file') ?> Lesson document</span><a class="btn btn-sm" href="<?= base_url($lesson['attachment_path']) ?>" download><?= icon('download') ?>Download</a></div>
+                    <iframe src="<?= ! empty($protect) ? site_url('study/' . $course['slug'] . '/media/' . $lesson['id']) . '#toolbar=0&navpanes=0&view=FitH' : base_url($lesson['attachment_path']) . '#view=FitH' ?>" title="Document" style="width:100%;height:70vh;border:0;display:block"></iframe>
+                    <div class="card-footer row between"><span class="text-sm"><?= icon('file') ?> Lesson document</span><?php if (empty($protect)) : ?><a class="btn btn-sm" href="<?= base_url($lesson['attachment_path']) ?>" download><?= icon('download') ?>Download</a><?php else : ?><span class="text-xs text-muted"><?= icon('lock') ?> View only</span><?php endif ?></div>
                 </div>
             <?php endif ?>
 
@@ -41,7 +41,7 @@ $minutes   = (int) $lesson['duration_mins'] ?: reading_minutes($lesson['content'
                 <section class="card mt-4">
                     <div class="card-header"><h2><?= icon('paperclip') ?> Resources</h2></div>
                     <div class="divider-list">
-                        <?php if ($lesson['attachment_path'] && $type !== 'audio' && ! str_ends_with(strtolower($lesson['attachment_path']), '.pdf')) : ?>
+                        <?php if ($lesson['attachment_path'] && $type !== 'audio' && ! str_ends_with(strtolower($lesson['attachment_path']), '.pdf') && empty($protect)) : ?>
                             <a class="card-body-sm row" href="<?= base_url($lesson['attachment_path']) ?>" download><?= icon('download') ?><span class="grow">Lesson file</span></a>
                         <?php endif ?>
                         <?php foreach ($resources as $r) : if (empty($r['url'])) { continue; } ?>

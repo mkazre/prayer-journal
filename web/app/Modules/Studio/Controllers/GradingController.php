@@ -11,7 +11,7 @@ class GradingController extends StudioController
     public function index(): string
     {
         $this->requireInstructor();
-        $ids    = array_map('intval', array_column((new CourseModel())->manageableBy($this->userId(), $this->isAdmin()), 'id')) ?: [0];
+        $ids    = array_map('intval', array_column((new CourseModel())->manageableBy($this->userId(), $this->isManager()), 'id')) ?: [0];
         $status = (string) ($this->request->getGet('status') ?: 'submitted');
         $rows   = db_connect()->table('assignment_submissions s')
             ->select('s.*, a.title AS assignment_title, a.max_points, a.course_id, c.title AS course_title, u.username')
@@ -33,7 +33,8 @@ class GradingController extends StudioController
         $points = max(0, min((int) $sub['max_points'], (int) $this->post('points')));
         (new AssignmentSubmissionModel())->grade($submissionId, $this->userId(), $points, trim((string) $this->post('feedback')));
         (new GradebookModel())->recalculate((int) $sub['course_id'], (int) $sub['user_id']);
-        $db->table('notifications')->insert(['user_id' => $sub['user_id'], 'type' => 'graded', 'body' => 'Your assignment "' . $sub['title'] . '" was graded: ' . $points . '/' . $sub['max_points'], 'created_at' => date('Y-m-d H:i:s')]);
+        $course = $db->table('courses')->select('slug')->where('id', $sub['course_id'])->get()->getRowArray();
+        \App\Libraries\Notify::assignmentGraded((int) $sub['user_id'], $sub['title'], $points, (int) $sub['max_points'], trim((string) $this->post('feedback')), (string) ($course['slug'] ?? ''));
 
         return $this->done('Graded ' . $points . '/' . $sub['max_points'] . '.');
     }

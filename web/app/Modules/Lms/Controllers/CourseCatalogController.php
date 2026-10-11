@@ -43,8 +43,10 @@ class CourseCatalogController extends BaseController
         $model  = new CourseModel();
         $course = $model->withStats($course);
 
-        $enrollment = auth()->loggedIn() ? (new EnrollmentModel())->findFor((int) $course['id'], $this->userId()) : null;
+        $enrollment = auth()->loggedIn() ? \App\Modules\Lms\Services\CourseAccess::resolve($course, $this->userId()) : null;
         $sections   = Curriculum::load((int) $course['id']);
+        $owned      = $enrollment ? \App\Modules\Lms\Services\CourseAccess::ownedSections($enrollment, (int) $course['id'], $this->userId()) : null;
+        $plans      = (new \App\Modules\Shop\Models\SubscriptionPlanModel())->where('is_active', 1)->orderBy('price_cents')->findAll();
         $reviews    = new CourseReviewModel();
         $all        = $reviews->forCourse((int) $course['id']);
         $breakdown  = array_fill(1, 5, 0);
@@ -71,7 +73,11 @@ class CourseCatalogController extends BaseController
             'settings'        => CourseModel::settings($course),
             'sections'        => $sections,
             'enrollment'      => $enrollment,
-            'enrolled'        => EnrollmentModel::isActive($enrollment),
+            'enrolled'        => EnrollmentModel::isActive($enrollment) && $owned === null,
+            'ownedSections'   => $owned,
+            'inMembership'    => \App\Modules\Lms\Services\CourseAccess::inMembership($course),
+            'cheapestPlan'    => $plans[0] ?? null,
+            'lapsed'          => auth()->loggedIn() && ! $enrollment && \App\Modules\Lms\Services\CourseAccess::lapsed($course, $this->userId()),
             'reviews'         => $all,
             'breakdown'       => $breakdown,
             'avgRating'       => $course['avg_rating'] !== null ? round((float) $course['avg_rating'], 1) : null,
@@ -97,6 +103,8 @@ class CourseCatalogController extends BaseController
             return redirect()->to(site_url('study/' . $slug . '/lesson/' . $lessonId));
         }
 
+        StudyController::protect($course);
+
         return view('Lms/catalog/preview', [
             'title'    => $lesson['title'] . ' — ' . $course['title'],
             'course'   => $course,
@@ -112,17 +120,18 @@ class CourseCatalogController extends BaseController
         $model  = new EnrollmentModel();
         $userId = $this->userId();
 
-        if (EnrollmentModel::isActive($model->findFor((int) $course['id'], $userId))) {
+        $existing = $model->findFor((int) $course['id'], $userId);
+        if (EnrollmentModel::isActive($existing) && ! in_array($existing['source'], ['subscription', 'module'], true)) {
             return redirect()->to(site_url('study/' . $slug));
         }
         if ($this->isFull($course)) {
             return redirect()->to(site_url('courses/' . $slug))->with('error', 'This course is full right now.');
         }
+        if (\App\Modules\Lms\Services\CourseAccess::resolve($course, $userId)) {
+            return redirect()->to(site_url('study/' . $slug));
+        }
         if (($course['access_mode'] ?? 'free') === 'subscription') {
-            if (! (new \App\Modules\Shop\Models\UserSubscriptionModel())->hasActive($userId)) {
-                return redirect()->to(site_url('pricing'))->with('info', 'This course is included with membership.');
-            }
-            $model->enroll((int) $course['id'], $userId, 'subscription');
+            return redirect()->to(site_url('pricing'))->with('info', 'This course is included with membership.');
         } elseif ((int) $course['price_cents'] > 0) {
             // Paid courses go through the shop checkout so purchase and enrollment share one payment path.
             return redirect()->to(site_url('checkout/course/' . $course['id']));

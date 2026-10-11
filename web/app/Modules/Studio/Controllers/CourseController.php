@@ -14,7 +14,7 @@ class CourseController extends StudioController
     public function index(): string
     {
         $this->requireInstructor();
-        $courses = (new CourseModel())->manageableBy($this->userId(), $this->isAdmin());
+        $courses = (new CourseModel())->manageableBy($this->userId(), $this->isManager());
         $status  = (string) $this->request->getGet('status');
         if (in_array($status, ['published', 'draft'], true)) {
             $courses = array_values(array_filter($courses, static fn ($c) => $c['status'] === $status));
@@ -90,7 +90,7 @@ class CourseController extends StudioController
             if ($data['access_mode'] === 'free') {
                 $data['price_cents'] = 0;
             }
-            if ($this->isAdmin()) {
+            if ($this->isManager()) {
                 $data['is_featured'] = $this->bool('is_featured');
             }
             try {
@@ -106,6 +106,7 @@ class CourseController extends StudioController
                 $data['thumbnail_path'] = null;
             }
             $model->skipValidation(true)->update($id, $data);
+            $model->saveSettings($id, ['in_membership' => $data['access_mode'] === 'paid' && $this->bool('in_membership')]);
 
             return redirect()->to(site_url('studio/courses/' . $id))->with('message', 'Course details saved.');
         }
@@ -147,6 +148,7 @@ class CourseController extends StudioController
                 'journal'               => ! empty($p['journal']),
                 'show_progress'         => ! empty($p['show_progress']),
                 'preview_public'        => ! empty($p['preview_public']),
+                'copy_protection'       => ! empty($p['copy_protection']),
                 'enrollment_limit'      => ($p['enrollment_limit'] ?? '') !== '' ? max(1, (int) $p['enrollment_limit']) : null,
                 'access_days'           => ($p['access_days'] ?? '') !== '' ? max(1, (int) $p['access_days']) : null,
                 'brand_color'           => $hex($p['brand_color'] ?? '', '#4b1e82'),
@@ -273,12 +275,9 @@ class CourseController extends StudioController
             }
             $model->insert(['course_id' => $id, 'user_id' => $this->userId(), 'title' => $title, 'body' => $body, 'created_at' => date('Y-m-d H:i:s')]);
             // Let enrolled learners know.
-            $db = db_connect();
-            foreach ($db->table('enrollments')->select('user_id')->where('course_id', $id)->where('status !=', 'revoked')->get()->getResultArray() as $e) {
-                $db->table('notifications')->insert(['user_id' => $e['user_id'], 'type' => 'announcement', 'body' => $course['title'] . ': ' . $title, 'created_at' => date('Y-m-d H:i:s')]);
-            }
+            \App\Libraries\Notify::announcement($course, $title, $body);
 
-            return redirect()->back()->with('message', 'Announcement posted to all learners.');
+            return redirect()->back()->with('message', 'Announcement posted and emailed to all learners.');
         }
 
         return $this->render('courses/announcements', ['title' => 'Announcements · ' . $course['title'], 'active' => 'courses', 'tab' => 'announcements', 'course' => $course, 'items' => $model->forCourse($id, 50)]);
@@ -403,7 +402,7 @@ class CourseController extends StudioController
     public function allStudents(): string
     {
         $this->requireInstructor();
-        $ids = array_map('intval', array_column((new CourseModel())->manageableBy($this->userId(), $this->isAdmin()), 'id')) ?: [0];
+        $ids = array_map('intval', array_column((new CourseModel())->manageableBy($this->userId(), $this->isManager()), 'id')) ?: [0];
         $q   = trim((string) $this->request->getGet('q'));
         $b   = db_connect()->table('enrollments e')
             ->select('u.id AS user_id, u.username, ai.secret AS email, COUNT(e.id) AS courses, AVG(e.progress_percent) AS avg_progress, MAX(COALESCE(e.last_activity_at, e.enrolled_at)) AS last_seen', false)

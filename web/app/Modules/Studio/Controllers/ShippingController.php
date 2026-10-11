@@ -6,7 +6,7 @@ class ShippingController extends StudioController
 {
     public function index(): string
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $db    = db_connect();
         $zones = $db->table('shipping_zones')->orderBy('id')->get()->getResultArray();
         foreach ($zones as &$z) {
@@ -18,7 +18,7 @@ class ShippingController extends StudioController
 
     public function saveZone()
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $name      = trim((string) $this->post('name'));
         $countries = strtoupper(preg_replace('/[^A-Za-z,*]/', '', (string) $this->post('countries')));
         if ($name === '' || $countries === '') {
@@ -33,7 +33,7 @@ class ShippingController extends StudioController
 
     public function deleteZone(int $id)
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $db = db_connect();
         $db->table('shipping_rates')->where('zone_id', $id)->delete();
         $db->table('shipping_zones')->where('id', $id)->delete();
@@ -43,7 +43,7 @@ class ShippingController extends StudioController
 
     public function saveRate()
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $name = trim((string) $this->post('name'));
         if ($name === '') {
             return $this->failed('Name the rate (e.g. "Standard courier").');
@@ -58,7 +58,7 @@ class ShippingController extends StudioController
 
     public function deleteRate(int $id)
     {
-        $this->requireAdmin();
+        $this->requireManager();
         db_connect()->table('shipping_rates')->where('id', $id)->delete();
 
         return $this->done('Rate deleted.', [], site_url('studio/shipping'));
@@ -66,7 +66,7 @@ class ShippingController extends StudioController
 
     public function saveTax()
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $country = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', (string) $this->post('country')), 0, 2));
         if (strlen($country) !== 2) {
             return $this->failed('Use a two-letter country code, e.g. ZA.');
@@ -78,7 +78,7 @@ class ShippingController extends StudioController
 
     public function deleteTax(int $id)
     {
-        $this->requireAdmin();
+        $this->requireManager();
         db_connect()->table('tax_rules')->where('id', $id)->delete();
 
         return $this->done('Tax rule deleted.', [], site_url('studio/shipping#tax'));

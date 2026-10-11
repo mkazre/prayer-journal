@@ -10,10 +10,10 @@ class OverviewController extends StudioController
     {
         $db    = db_connect();
         $since = date('Y-m-d H:i:s', strtotime('-30 days'));
-        $data  = ['title' => 'Studio', 'active' => 'overview', 'isAdmin' => $this->isAdmin(), 'isInstructor' => $this->isInstructor(), 'isVendor' => $this->isVendor()];
+        $data  = ['title' => 'Studio', 'active' => 'overview', 'isAdmin' => $this->isManager(), 'isInstructor' => $this->isInstructor(), 'isVendor' => $this->isVendor()];
 
         if ($this->isInstructor()) {
-            $courses   = (new CourseModel())->manageableBy($this->userId(), $this->isAdmin());
+            $courses   = (new CourseModel())->manageableBy($this->userId(), $this->isManager());
             $courseIds = array_map('intval', array_column($courses, 'id')) ?: [0];
             $data['courses']        = array_slice($courses, 0, 5);
             $data['courseCount']    = count($courses);
@@ -25,7 +25,7 @@ class OverviewController extends StudioController
             $data['recentLearners'] = $db->table('enrollments e')->select('e.*, u.username, c.title AS course_title')->join('users u', 'u.id = e.user_id')->join('courses c', 'c.id = e.course_id')
                 ->whereIn('e.course_id', $courseIds)->orderBy('e.enrolled_at', 'DESC')->limit(6)->get()->getResultArray();
         }
-        if ($this->isAdmin()) {
+        if ($this->isManager()) {
             $paid = ['paid', 'processing', 'shipped', 'completed'];
             $data['revenue']     = (int) ($db->table('orders')->selectSum('total_cents')->whereIn('status', $paid)->where('created_at >=', $since)->get()->getRow('total_cents') ?? 0);
             $data['orderCount']  = $db->table('orders')->whereIn('status', $paid)->where('created_at >=', $since)->countAllResults();

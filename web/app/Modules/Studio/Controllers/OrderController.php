@@ -8,7 +8,7 @@ class OrderController extends StudioController
 {
     public function index(): string
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $status = (string) $this->request->getGet('status');
         $q      = trim((string) $this->request->getGet('q'));
         $b      = db_connect()->table('orders o')->select('o.*, (SELECT COALESCE(SUM(quantity),0) FROM order_items oi WHERE oi.order_id = o.id) AS units', false);
@@ -28,7 +28,7 @@ class OrderController extends StudioController
 
     public function show(int $id): string
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $orders = new OrderModel();
         $order  = $orders->find($id) ?? $this->notFound();
         $payments = db_connect()->table('payments')->where('order_id', $id)->orderBy('id', 'DESC')->get()->getResultArray();
@@ -42,7 +42,7 @@ class OrderController extends StudioController
 
     public function status(int $id)
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $status = (string) $this->post('status');
         if (! isset(OrderModel::STATUSES[$status])) {
             return $this->failed('Unknown status.');
@@ -54,7 +54,7 @@ class OrderController extends StudioController
 
     public function fulfill(int $id)
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $orders  = new OrderModel();
         $order   = $orders->find($id) ?? $this->notFound();
         $carrier = trim((string) $this->post('carrier'));
@@ -68,16 +68,14 @@ class OrderController extends StudioController
         }
         $orders->setStatus($id, 'shipped', $this->userId());
         $orders->log($id, 'fulfilment', 'Shipped' . ($carrier ? ' with ' . $carrier : '') . ($track ? ' · tracking ' . $track : '') . '.', $this->userId());
-        if ($order['user_id']) {
-            $db->table('notifications')->insert(['user_id' => $order['user_id'], 'type' => 'order', 'body' => 'Your order ' . $order['order_number'] . ' has shipped' . ($track ? ' (tracking ' . $track . ')' : '') . '.', 'created_at' => date('Y-m-d H:i:s')]);
-        }
+        \App\Libraries\Notify::orderShipped($id, $carrier ?: null, $track ?: null);
 
         return $this->done('Marked as shipped.', [], site_url('studio/orders/' . $id));
     }
 
     public function note(int $id)
     {
-        $this->requireAdmin();
+        $this->requireManager();
         $orders = new OrderModel();
         $orders->find($id) ?? $this->notFound();
         $note = trim((string) $this->post('note'));

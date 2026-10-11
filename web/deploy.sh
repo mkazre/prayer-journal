@@ -96,7 +96,12 @@ fi
 
 # --- Folders the web server writes to -----------------------------------------
 mkdir -p writable/cache writable/logs writable/session writable/uploads public/uploads
-chmod -R u+rwX,go+rX writable public/uploads
+chmod -R u+rwX writable
+# The web server (LiteSpeed/Apache) must be able to pass through the app
+# folders and read web/public. 711 lets it through without listing them;
+# .env stays private (600).
+chmod 711 "$(dirname "$APP_DIR")" "$APP_DIR"
+chmod -R a+rX public
 
 # --- Database -------------------------------------------------------------------
 say "Updating the database"
@@ -115,6 +120,17 @@ spark import:prayer-journal
 spark db:seed ShopStarterSeeder
 
 spark cache:clear >/dev/null 2>&1 || true
+
+# --- Scheduler: emails, membership billing checks, learning reminders ---------
+CRON_LINE="*/5 * * * * cd $APP_DIR && $PHP_BIN spark app:cron >/dev/null 2>&1"
+if command -v crontab >/dev/null 2>&1; then
+    ( crontab -l 2>/dev/null | grep -v 'spark app:cron' ; echo "$CRON_LINE" ) | crontab - \
+        && say "Scheduler installed (runs every 5 minutes)" \
+        || warn "Could not add the cron job automatically. Add it in cPanel > Cron Jobs: $CRON_LINE"
+else
+    warn "Add this in cPanel > Cron Jobs (Once Per Five Minutes): $CRON_LINE"
+fi
+spark app:cron >/dev/null 2>&1 || true
 
 # --- Point the main domain at web/public ---------------------------------------
 PUBLIC_HTML="$HOME/public_html"

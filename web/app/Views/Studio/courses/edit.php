@@ -48,6 +48,8 @@
                     </div>
                 </div>
                 <div class="field"><label class="label" for="price">Price (<?= esc(store_currency()) ?>)</label><input class="input" id="price" name="price" type="number" min="0" step="0.01" value="<?= number_format(((int) $c['price_cents']) / 100, 2, '.', '') ?>"><span class="help">Used when access is "One-time price".</span></div>
+                <label class="switch"><input type="checkbox" name="in_membership" value="1" <?= ! empty(\App\Modules\Lms\Models\CourseModel::settings($c)['in_membership']) ? 'checked' : '' ?>><span class="track"></span>Also included in membership plans</label>
+                <p class="help mb-0">With "One-time price" and this switched on, people can buy the course <em>or</em> get it through a monthly membership. To sell modules individually, set a price on each module under <strong>Curriculum</strong>.</p>
             </section>
             <section class="card card-body">
                 <h3>Organisation</h3>
@@ -60,7 +62,7 @@
                 </div>
                 <div class="field"><label class="label" for="tags">Tags</label><input class="input" id="tags" name="tags" value="<?= $v('tags') ?>" placeholder="prayer, devotional"></div>
                 <div class="field"><label class="label" for="intro">Intro video URL</label><input class="input" id="intro" name="intro_video_url" value="<?= $v('intro_video_url') ?>" placeholder="YouTube or Vimeo link"></div>
-                <?php if (is_staff('superadmin', 'admin')) : ?><label class="switch"><input type="checkbox" name="is_featured" value="1" <?= $c['is_featured'] ? 'checked' : '' ?>><span class="track"></span>Feature on the home page</label><?php endif ?>
+                <?php if (is_staff('superadmin', 'admin', 'manager')) : ?><label class="switch"><input type="checkbox" name="is_featured" value="1" <?= $c['is_featured'] ? 'checked' : '' ?>><span class="track"></span>Feature on the home page</label><?php endif ?>
             </section>
             <section class="card card-body text-sm">
                 <div class="summary-row"><span>Lessons</span><strong><?= (int) $stats['lesson_count'] ?></strong></div>

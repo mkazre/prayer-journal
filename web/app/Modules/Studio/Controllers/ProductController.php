@@ -24,7 +24,7 @@ class ProductController extends StudioController
             'category'     => (string) $this->request->getGet('category'),
             'type'         => (string) $this->request->getGet('type'),
             'sort'         => 'updated',
-            'vendor_id'    => $this->isAdmin() ? null : $this->userId(),
+            'vendor_id'    => $this->isManager() ? null : $this->userId(),
         ];
         $model = new ProductModel();
         $page  = $model->storefrontPage($filters, (int) $this->request->getGet('page') ?: 1, 25);
@@ -98,7 +98,7 @@ class ProductController extends StudioController
         $count  = 0;
         foreach ($ids as $id) {
             $p = $model->find($id);
-            if (! $p || (! $this->isAdmin() && (int) $p['vendor_id'] !== $this->userId())) {
+            if (! $p || (! $this->isManager() && (int) $p['vendor_id'] !== $this->userId())) {
                 continue;
             }
             match ($action) {
@@ -139,7 +139,7 @@ class ProductController extends StudioController
             ->join('products p', 'p.id = v.product_id')
             ->join('inventory_levels il', 'il.variant_id = v.id', 'left')
             ->where('p.deleted_at IS NULL')->where('p.track_inventory', 1)->where('p.product_type !=', 'digital');
-        if (! $this->isAdmin()) {
+        if (! $this->isManager()) {
             $b->where('p.vendor_id', $this->userId());
         }
         if ($q = trim((string) $this->request->getGet('q'))) {
@@ -229,7 +229,7 @@ class ProductController extends StudioController
             'track_inventory'   => $type === 'digital' ? 0 : (! empty($p['track_inventory']) ? 1 : 0),
             'allow_backorder'   => ! empty($p['allow_backorder']) ? 1 : 0,
         ];
-        if ($this->isAdmin()) {
+        if ($this->isManager()) {
             $data['is_featured'] = ! empty($p['is_featured']) ? 1 : 0;
         }
         if ($status === 'published' && empty($product['published_at'])) {
@@ -241,7 +241,7 @@ class ProductController extends StudioController
             $model->update($product['id'], $data);
             $id = (int) $product['id'];
         } else {
-            $data['vendor_id'] = $this->isAdmin() ? null : $this->userId();
+            $data['vendor_id'] = $this->isManager() ? null : $this->userId();
             $id                = (int) $model->insert($data, true);
         }
 
@@ -330,7 +330,7 @@ class ProductController extends StudioController
     {
         $this->requireVendor();
         $product = (new ProductModel())->find($id);
-        if (! $product || (! $this->isAdmin() && (int) $product['vendor_id'] !== $this->userId())) {
+        if (! $product || (! $this->isManager() && (int) $product['vendor_id'] !== $this->userId())) {
             $this->notFound();
         }
 

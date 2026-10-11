@@ -85,6 +85,7 @@ class OrderModel extends Model
         $this->update($orderId, ['status' => $digitalOnly ? 'completed' : 'paid', 'paid_at' => date('Y-m-d H:i:s')]);
         $this->log($orderId, 'paid', 'Payment confirmed via ' . $via . '.' . ($digitalOnly ? ' Digital downloads unlocked.' : ''));
         $this->db->table('carts')->where('user_id', $order['user_id'])->where('status', 'checkout')->update(['status' => 'converted']);
+        \App\Libraries\Notify::orderConfirmed($orderId);
     }
 
     public function setStatus(int $orderId, string $status, ?int $byUserId = null): void
@@ -112,6 +113,7 @@ class OrderModel extends Model
         }
         $this->update($orderId, $data);
         $this->log($orderId, 'status', 'Status changed to ' . self::STATUSES[$status][0] . '.', $byUserId);
+        \App\Libraries\Notify::orderStatus($orderId, $status);
     }
 
     public function log(int $orderId, string $type, string $message, ?int $userId = null): void

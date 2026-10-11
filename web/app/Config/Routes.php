@@ -44,6 +44,7 @@ $routes->group('study', ['filter' => 'session'], static function ($routes) use (
     $routes->get('(:segment)', $lms . 'StudyController::show/$1');
     $routes->get('(:segment)/notes', $lms . 'StudyController::notes/$1');
     $routes->get('(:segment)/lesson/(:num)', $lms . 'StudyController::lesson/$1/$2');
+    $routes->get('(:segment)/media/(:num)', $lms . 'StudyController::media/$1/$2');
     $routes->post('(:segment)/lesson/(:num)/complete', $lms . 'StudyController::completeLesson/$1/$2');
     $routes->post('(:segment)/lesson/(:num)/note', $lms . 'StudyController::saveNote/$1/$2');
     $routes->post('(:segment)/lesson/(:num)/journal', $lms . 'StudyController::saveJournal/$1/$2');
@@ -102,6 +103,8 @@ $routes->match(['GET', 'POST'], 'checkout/cart', $shop . 'CheckoutController::ca
 $routes->match(['GET', 'POST'], 'checkout/course/(:num)', $shop . 'CheckoutController::course/$1');
 $routes->match(['GET', 'POST'], 'checkout/lesson/(:num)', $shop . 'CheckoutController::lesson/$1');
 $routes->match(['GET', 'POST'], 'checkout/plan/(:num)', $shop . 'CheckoutController::plan/$1');
+$routes->match(['GET', 'POST'], 'checkout/module/(:num)', $shop . 'CheckoutController::module/$1');
+$routes->post('account/membership/cancel', $shop . 'CheckoutController::cancelMembership', ['filter' => 'session']);
 $routes->post('webhooks/stripe', $shop . 'CheckoutController::webhook');
 $routes->post('webhooks/payfast', $shop . 'CheckoutController::payfastNotify');
 $routes->get('orders/(:num)', $shop . 'OrderController::show/$1');
@@ -126,7 +129,7 @@ $routes->post('prayer-requests/(:num)/delete', $core . 'PrayerRequestController:
 // Studio: one back office for instructors, vendors and admins.
 // Each controller narrows access further (e.g. orders are admin-only).
 // ---------------------------------------------------------------------
-$routes->group('studio', ['filter' => ['session', 'group:superadmin,admin,instructor,vendor']], static function ($routes) use ($std) {
+$routes->group('studio', ['filter' => ['session', 'group:superadmin,admin,manager,instructor,vendor']], static function ($routes) use ($std) {
     $routes->get('/', $std . 'OverviewController::index');
     $routes->post('uploads', $std . 'UploadController::image');
 
@@ -202,14 +205,24 @@ $routes->group('studio', ['filter' => ['session', 'group:superadmin,admin,instru
     $routes->get('plans', $std . 'PlanController::index');
     $routes->post('plans', $std . 'PlanController::save');
     $routes->post('plans/(:num)/toggle', $std . 'PlanController::toggle/$1');
+    $routes->post('memberships/(:num)/cancel', $std . 'PlanController::cancelMember/$1');
     $routes->get('reports', $std . 'ReportController::index');
 
     // Community & site
     $routes->get('prayer', $std . 'SiteController::prayer');
     $routes->post('prayer/(:num)/delete', $std . 'SiteController::deletePrayer/$1');
     $routes->get('users', $std . 'SiteController::users');
+    $routes->post('users', $std . 'SiteController::createUser');
+    $routes->post('users/(:num)', $std . 'SiteController::updateUser/$1');
     $routes->post('users/(:num)/groups', $std . 'SiteController::userGroups/$1');
+    $routes->post('users/(:num)/suspend', $std . 'SiteController::suspendUser/$1');
+    $routes->post('users/(:num)/delete', $std . 'SiteController::deleteUser/$1');
     $routes->match(['GET', 'POST'], 'settings', $std . 'SiteController::settings');
+    $routes->post('settings/test-email', $std . 'SiteController::testEmail');
+    $routes->get('settings/preview-reminder', $std . 'SiteController::previewReminder');
+    $routes->get('emails', $std . 'SiteController::emails');
+    $routes->get('emails/(:num)', $std . 'SiteController::viewEmail/$1');
+    $routes->post('emails/(:num)/retry', $std . 'SiteController::retryEmail/$1');
 });
 
 // Old back-office URLs now live in Studio.

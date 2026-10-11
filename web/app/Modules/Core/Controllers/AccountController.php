@@ -15,6 +15,9 @@ class AccountController extends BaseController
             'user'    => auth()->user(),
             'profile' => user_profile(),
             'prefs'   => user_prefs(),
+            'membership' => \App\Modules\Shop\Services\Membership::current($this->userId()),
+            'memberPayments' => db_connect()->table('payments p')->select('p.*, sp.name AS plan_name')->join('subscription_plans sp', 'sp.id = p.plan_id')
+                ->where('p.user_id', $this->userId())->where('p.status', 'paid')->orderBy('p.id', 'DESC')->limit(24)->get()->getResultArray(),
         ]);
     }
 
@@ -56,6 +59,7 @@ class AccountController extends BaseController
         }
         $user->fill(['password' => $new]);
         auth()->getProvider()->save($user);
+        \App\Libraries\Notify::passwordChanged((int) $user->id);
 
         return $this->done('Password updated.', [], site_url('account#security'));
     }
