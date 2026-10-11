@@ -10,6 +10,6 @@ class AssignmentModel extends Model
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
-    protected $allowedFields    = ['course_id', 'lesson_id', 'title', 'instructions', 'max_points', 'due_at'];
+    protected $allowedFields    = ['course_id', 'section_id', 'lesson_id', 'title', 'instructions', 'max_points', 'due_at', 'position', 'allow_file'];
     protected $useTimestamps    = true;
 }
