@@ -213,6 +213,13 @@ class StudyController extends BaseController
             'body'       => $body,
             'created_at' => date('Y-m-d H:i:s'),
         ]);
+        if ($parent) {
+            $author = (int) db_connect()->table('course_qa_threads')->where('id', $parent)->get()->getRow('user_id');
+            if ($author && $author !== $this->userId()) {
+                $lesson = (new LessonModel())->find($lessonId);
+                \App\Libraries\Notify::discussionReply($author, display_name(), (string) ($lesson['title'] ?? 'a lesson'), site_url('study/' . $slug . '/lesson/' . $lessonId) . '#discussion');
+            }
+        }
 
         return redirect()->to(site_url('study/' . $slug . '/lesson/' . $lessonId) . '#discussion')->with('message', 'Comment posted.');
     }
@@ -305,6 +312,7 @@ class StudyController extends BaseController
             }
             $submissions->submit($assignmentId, $this->userId(), $content, $file ?? ($submission['attachment_path'] ?? null));
             Curriculum::recalculate((int) $enrollment['id']);
+            \App\Libraries\Notify::assignmentSubmitted($course, (string) $assignment['title'], $this->userId());
 
             return redirect()->to(site_url('study/' . $slug . '/assignment/' . $assignmentId))->with('message', 'Submitted. Your instructor will review it.');
         }
@@ -363,12 +371,9 @@ class StudyController extends BaseController
         if (! $course) {
             $this->notFound();
         }
-        $enrollments = new EnrollmentModel();
-        $enrollment  = $enrollments->findFor((int) $course['id'], $this->userId());
-
-        if (! EnrollmentModel::isActive($enrollment) && ($course['access_mode'] ?? '') === 'subscription'
-            && (new UserSubscriptionModel())->hasActive($this->userId())) {
-            $enrollment = $enrollments->enroll((int) $course['id'], $this->userId(), 'subscription');
+        $enrollment = \App\Modules\Lms\Services\CourseAccess::resolve($course, $this->userId());
+        if (! $enrollment && \App\Modules\Lms\Services\CourseAccess::lapsed($course, $this->userId()) && ! $model->isInstructor((int) $course['id'], $this->userId())) {
+            throw new \CodeIgniter\HTTP\Exceptions\RedirectException(redirect()->to(site_url('pricing'))->with('error', 'Your membership is not active, so this course is paused. Renew to continue where you left off — your progress is saved.'));
         }
         if (EnrollmentModel::isActive($enrollment)) {
             if ($course['status'] !== 'published' && ! $model->isInstructor((int) $course['id'], $this->userId())) {
@@ -381,6 +386,7 @@ class StudyController extends BaseController
         if (! $requireEnrollment && $model->isInstructor((int) $course['id'], $this->userId())) {
             return [$course, null, true];
         }
+        $enrollment = (new EnrollmentModel())->findFor((int) $course['id'], $this->userId());
         if ($enrollment && ! EnrollmentModel::isActive($enrollment)) {
             throw new \CodeIgniter\HTTP\Exceptions\RedirectException(redirect()->to(site_url('courses/' . $slug))->with('error', 'Your access to this course has ended.'));
         }

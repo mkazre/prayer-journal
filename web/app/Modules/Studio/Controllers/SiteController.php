@@ -2,6 +2,7 @@
 
 namespace App\Modules\Studio\Controllers;
 
+use App\Libraries\Mailer;
 use App\Libraries\Uploads;
 use App\Modules\Core\Models\AppSettingModel;
 use App\Modules\Core\Models\PrayerRequestModel;
@@ -46,6 +47,21 @@ class SiteController extends StudioController
             'shop_subtitle'            => ['Shop page text', 'textarea', ''],
             'allow_test_payments'      => ['Allow test payments in production', 'bool', 'Only for staging sites — orders are marked paid without taking money.'],
         ],
+        'Emails' => [
+            'mail_from_name'       => ['Sender name', 'text', 'Shown as the sender, e.g. "Timeless Wisdom".'],
+            'mail_from_email'      => ['Sender address', 'email', 'Use an address on your own domain, e.g. hello@timelesswisdomapp.com.'],
+            'mail_reply_to'        => ['Reply-to address', 'email', 'Where replies to emails go (optional).'],
+            'admin_alert_email'    => ['Send admin alerts to', 'text', 'Comma-separated. New orders, memberships and cancellations. Blank = every admin.'],
+            'smtp_host'            => ['SMTP server', 'text', 'Optional, for the best inbox delivery. On cPanel usually mail.yourdomain.com. Leave blank to use the server\'s built-in mail.'],
+            'smtp_port'            => ['SMTP port', 'number', '465 for SSL (recommended) or 587 for TLS.'],
+            'smtp_crypto'          => ['SMTP security', 'select:ssl=SSL (port 465)|tls=TLS (port 587)|none=None', ''],
+            'smtp_user'            => ['SMTP username', 'text', 'Usually the full email address of the mailbox.'],
+            'smtp_password'        => ['SMTP password', 'password', 'Stored encrypted. Leave blank to keep the current password.'],
+            'reminder_after_days'  => ['First learning reminder after (days inactive)', 'number', 'Default 3.'],
+            'reminder_repeat_days' => ['Repeat learning reminders every (days)', 'number', 'Default 7.'],
+            'reminder_max'         => ['Maximum reminders per absence', 'number', 'Default 4. Set 0 to turn learning reminders off.'],
+            'reminder_hour'        => ['Send reminders after (hour, 0–23)', 'number', 'Default 9 (09:00, South African time).'],
+        ],
     ];
 
     public function settings()
@@ -53,26 +69,9 @@ class SiteController extends StudioController
         $this->requireAdmin();
         $model = new AppSettingModel();
         if ($this->request->getMethod() === 'POST') {
-            foreach (self::SETTINGS as $group) {
-                foreach ($group as $key => [$label, $type]) {
-                    $value = $type === 'bool' ? ($this->post($key) ? '1' : '0') : trim((string) $this->post($key));
-                    if ($type === 'color' && ! preg_match('/^#[0-9a-f]{6}$/i', $value)) {
-                        $value = '';
-                    }
-                    $model->put($key, $value);
-                }
+            if ($error = $this->saveFromPost()) {
+                return redirect()->back()->with('error', $error);
             }
-            try {
-                if ($logo = Uploads::image($this->request->getFile('logo'), 'branding', 2048)) {
-                    $model->put('logo_path', $logo);
-                }
-            } catch (\RuntimeException $e) {
-                return redirect()->back()->with('error', $e->getMessage());
-            }
-            if ($this->post('reset_logo')) {
-                $model->put('logo_path', '');
-            }
-            site_setting('__flush__');
 
             return redirect()->to(site_url('studio/settings'))->with('message', 'Settings saved.');
         }
@@ -81,7 +80,131 @@ class SiteController extends StudioController
             $values[$r['setting_key']] = $r['setting_value'];
         }
 
-        return $this->render('site/settings', ['title' => 'Site settings', 'active' => 'settings', 'groups' => self::SETTINGS, 'values' => $values]);
+        $db = db_connect();
+
+        return $this->render('site/settings', ['title' => 'Site settings', 'active' => 'settings', 'groups' => self::SETTINGS, 'values' => $values,
+            'mail' => [
+                'cron'     => Mailer::cronIsRunning(),
+                'lastCron' => (int) ($values['cron_last_run'] ?? 0),
+                'queued'   => $db->table('email_queue')->where('status', 'queued')->countAllResults(),
+                'failed'   => $db->table('email_queue')->where('status', 'failed')->countAllResults(),
+                'sent7'    => $db->table('email_queue')->where('status', 'sent')->where('sent_at >', date('Y-m-d H:i:s', strtotime('-7 days')))->countAllResults(),
+                'from'     => Mailer::fromEmail(),
+                'smtp'     => trim((string) ($values['smtp_host'] ?? '')) !== '',
+                'hasPass'  => ($values['smtp_password'] ?? '') !== '',
+                'cronCmd'  => '*/5 * * * * ' . PHP_BINARY . ' ' . ROOTPATH . 'spark app:cron >/dev/null 2>&1',
+            ]]);
+    }
+
+    /**
+     * Saves every setting in the form; returns an error message on failure.
+     */
+    private function saveFromPost(): ?string
+    {
+        $model = new AppSettingModel();
+        foreach (self::SETTINGS as $group) {
+            foreach ($group as $key => [$label, $type]) {
+                if ($type === 'password') {
+                    if ($this->post($key . '_clear')) {
+                        Mailer::storeSecret($key, '');
+                    } elseif (($secret = (string) $this->post($key)) !== '') {
+                        Mailer::storeSecret($key, $secret);
+                    }
+
+                    continue;
+                }
+                $value = $type === 'bool' ? ($this->post($key) ? '1' : '0') : trim((string) $this->post($key));
+                if (str_starts_with($type, 'select:') && ! in_array($value, array_map(static fn ($o) => strtok($o, '='), explode('|', substr($type, 7))), true)) {
+                    $value = '';
+                }
+                if ($type === 'color' && ! preg_match('/^#[0-9a-f]{6}$/i', $value)) {
+                    $value = '';
+                }
+                $model->put($key, $value);
+            }
+        }
+        try {
+            if ($logo = Uploads::image($this->request->getFile('logo'), 'branding', 2048)) {
+                $model->put('logo_path', $logo);
+            }
+        } catch (\RuntimeException $e) {
+            return $e->getMessage();
+        }
+        if ($this->post('reset_logo')) {
+            $model->put('logo_path', '');
+        }
+        site_setting('__flush__');
+
+        return null;
+    }
+
+    /**
+     * Sends a test email to the signed-in admin, immediately (not queued).
+     */
+    public function testEmail()
+    {
+        $this->requireAdmin();
+        // The button sits inside the settings form: save what was typed first.
+        if ($error = $this->saveFromPost()) {
+            return redirect()->back()->with('error', $error);
+        }
+        $id = Mailer::queue('test', (string) auth()->user()->email, display_name(), 'Test email from ' . site_name(), [
+            'heading'    => 'Your email is working',
+            'tone'       => 'success',
+            'paragraphs' => ['This test was sent from <strong>' . esc(site_name()) . '</strong> on ' . date('j F Y \a\t H:i') . '.', 'If you can read this in your inbox (not spam), notifications, receipts and reminders will reach your members too.'],
+            'rows'       => ['Sent from' => esc(Mailer::fromEmail()), 'Method' => trim((string) site_setting('smtp_host')) !== '' ? 'SMTP (' . esc((string) site_setting('smtp_host')) . ')' : 'Server mail'],
+            'button'     => ['Open Studio', site_url('studio')],
+        ], $this->userId());
+        $ok    = $id && Mailer::deliver($id);
+        $error = $id ? (string) db_connect()->table('email_queue')->where('id', $id)->get()->getRow('last_error') : 'Invalid address.';
+
+        return redirect()->to(site_url('studio/settings#emails'))->with($ok ? 'message' : 'error', $ok ? 'Test email sent to ' . auth()->user()->email . '. Check your inbox (and spam folder).' : 'The test email could not be sent: ' . $error);
+    }
+
+    /**
+     * Outgoing email log with resend for failures.
+     */
+    public function emails(): string
+    {
+        $this->requireAdmin();
+        $status = (string) $this->request->getGet('status');
+        $b      = db_connect()->table('email_queue')->select('id, to_email, to_name, template, subject, status, attempts, last_error, created_at, sent_at');
+        if (in_array($status, ['queued', 'sent', 'failed'], true)) {
+            $b->where('status', $status);
+        }
+
+        return $this->render('site/emails', ['title' => 'Email log', 'active' => 'emails', 'status' => $status, 'rows' => $b->orderBy('id', 'DESC')->limit(300)->get()->getResultArray()]);
+    }
+
+    public function viewEmail(int $id)
+    {
+        $this->requireAdmin();
+        $row = db_connect()->table('email_queue')->where('id', $id)->get()->getRowArray() ?? $this->notFound();
+
+        return $this->response->setHeader('Content-Security-Policy', "default-src 'none'; img-src * data:; style-src 'unsafe-inline'")->setBody($row['html']);
+    }
+
+    public function retryEmail(int $id)
+    {
+        $this->requireAdmin();
+        db_connect()->table('email_queue')->where('id', $id)->update(['status' => 'queued', 'attempts' => 0]);
+        $ok = Mailer::deliver($id);
+
+        return $this->done($ok ? 'Email sent.' : 'Still failing — check the SMTP settings.', [], site_url('studio/emails'));
+    }
+
+    public function previewReminder()
+    {
+        $this->requireAdmin();
+        // Build a real reminder for the admin's own learning, without sending it.
+        if (! \App\Modules\Lms\Services\LearningReminders::sendLearner($this->userId())) {
+            return redirect()->to(site_url('studio/settings#emails'))->with('error', 'Enrol yourself in a course first — the preview uses your own progress.');
+        }
+        $db  = db_connect();
+        $row = $db->table('email_queue')->where(['user_id' => $this->userId(), 'template' => 'learning_reminder'])->orderBy('id', 'DESC')->get()->getRowArray();
+        $db->table('email_queue')->where('id', $row['id'])->delete();
+
+        return $this->response->setHeader('Content-Security-Policy', "default-src 'none'; img-src * data:; style-src 'unsafe-inline'")->setBody($row['html']);
     }
 
     public function users(): string
@@ -150,7 +273,10 @@ class SiteController extends StudioController
             (new \App\Modules\Core\Models\UserProfileModel())->upsert((int) $user->id, ['display_name' => mb_substr($name, 0, 120)]);
         }
 
-        $message = 'Account created for ' . $email . '.';
+        if ($this->post('send_email')) {
+            \App\Libraries\Notify::accountCreatedByAdmin((int) $user->id, $password);
+        }
+        $message = 'Account created for ' . $email . '.' . ($this->post('send_email') ? ' Their sign-in details were emailed to them.' : '');
         if ($generated) {
             $message .= ' Temporary password: ' . $password . ' (copy it now; it will not be shown again).';
         }
@@ -195,6 +321,7 @@ class SiteController extends StudioController
             // Sign the person out everywhere so the new password takes effect.
             db_connect()->table('auth_identities')->where(['user_id' => $id, 'type' => 'access_token'])->delete();
             db_connect()->table('auth_remember_tokens')->where('user_id', $id)->delete();
+            \App\Libraries\Notify::passwordChanged($id, true);
         }
 
         return $this->done('Saved changes to ' . $username . '.', [], site_url('studio/users'));
@@ -238,11 +365,13 @@ class SiteController extends StudioController
         }
         if ($user->isBanned()) {
             $user->unBan();
+            \App\Libraries\Notify::accountRestored($id);
 
             return $this->done($user->username . ' can sign in again.');
         }
         $user->ban(trim((string) $this->post('reason')) ?: 'Your account has been suspended. Please contact us.');
         db_connect()->table('auth_identities')->where(['user_id' => $id, 'type' => 'access_token'])->delete();
+        \App\Libraries\Notify::accountSuspended($id);
 
         return $this->done($user->username . ' has been suspended.');
     }

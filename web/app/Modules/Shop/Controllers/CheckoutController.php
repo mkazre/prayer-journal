@@ -5,13 +5,17 @@ namespace App\Modules\Shop\Controllers;
 use App\Controllers\BaseController;
 use App\Modules\Lms\Models\CourseModel;
 use App\Modules\Lms\Models\EnrollmentModel;
+use App\Libraries\Notify;
+use App\Modules\Lms\Models\CourseSectionModel;
 use App\Modules\Lms\Models\LessonModel;
+use App\Modules\Lms\Models\SectionUnlockModel;
 use App\Modules\Shop\Models\CartModel;
 use App\Modules\Shop\Models\LessonUnlockModel;
 use App\Modules\Shop\Models\OrderModel;
 use App\Modules\Shop\Models\PaymentModel;
 use App\Modules\Shop\Models\SubscriptionPlanModel;
 use App\Modules\Shop\Models\UserSubscriptionModel;
+use App\Modules\Shop\Services\Membership;
 use App\Modules\Shop\Services\PayFastGateway;
 use App\Modules\Shop\Services\PaymentGateway;
 use App\Modules\Shop\Services\Pricing;
@@ -125,7 +129,9 @@ class CheckoutController extends BaseController
         if (! auth()->loggedIn()) {
             return redirect()->to(site_url('login'))->with('info', 'Sign in to buy this course.');
         }
-        if (EnrollmentModel::isActive((new EnrollmentModel())->findFor($courseId, $this->userId()))) {
+        // Module-only and membership learners may still buy the full course outright.
+        $existing = (new EnrollmentModel())->findFor($courseId, $this->userId());
+        if (EnrollmentModel::isActive($existing) && ! in_array($existing['source'], ['module', 'subscription'], true)) {
             return redirect()->to(site_url('study/' . $course['slug']));
         }
         if ($this->request->getMethod() === 'POST') {
@@ -177,7 +183,42 @@ class CheckoutController extends BaseController
     }
 
     /**
-     * Subscription or lifetime membership plans.
+     * Pay-per-module: unlock one module of a course.
+     */
+    public function module(int $sectionId)
+    {
+        $section = (new CourseSectionModel())->find($sectionId);
+        $course  = $section ? (new CourseModel())->find($section['course_id']) : null;
+        if (! $section || ! $course || $course['status'] !== 'published' || (int) $section['price_cents'] <= 0) {
+            $this->notFound();
+        }
+        if (! auth()->loggedIn()) {
+            return redirect()->to(site_url('login'))->with('info', 'Sign in to buy this module.');
+        }
+        $enrollment = (new EnrollmentModel())->findFor((int) $course['id'], $this->userId());
+        $hasFull    = EnrollmentModel::isActive($enrollment) && ($enrollment['source'] ?? '') !== 'module';
+        if ($hasFull || (new SectionUnlockModel())->has($this->userId(), $sectionId)) {
+            return redirect()->to(site_url('study/' . $course['slug']))->with('info', 'You already have this module.');
+        }
+        if ($this->request->getMethod() === 'POST') {
+            $paymentId = (int) (new PaymentModel())->insert([
+                'section_id'   => $sectionId,
+                'course_id'    => null,
+                'user_id'      => $this->userId(),
+                'gateway'      => 'pending',
+                'amount_cents' => $section['price_cents'],
+                'currency'     => $course['currency'],
+                'status'       => 'pending',
+            ], true);
+
+            return $this->beginPayment($paymentId, (int) $section['price_cents'], $course['currency'], $section['title'] . ' — ' . $course['title'], site_url('study/' . $course['slug']), site_url('checkout/module/' . $sectionId));
+        }
+
+        return view('Shop/checkout/product', ['title' => 'Unlock module', 'kind' => 'Module', 'name' => $section['title'], 'description' => 'One module of ' . $course['title'] . '. Lifetime access to its lessons, quizzes and journal prompts.', 'price' => (int) $section['price_cents'], 'currency' => $course['currency'], 'gateways' => $this->gateways(), 'icon' => 'layers']);
+    }
+
+    /**
+     * Monthly/yearly memberships (recurring through PayFast) and lifetime plans.
      */
     public function plan(int $planId)
     {
@@ -188,8 +229,18 @@ class CheckoutController extends BaseController
         if (! $plan || ! $plan['is_active']) {
             $this->notFound();
         }
+        $current = Membership::current($this->userId());
+        if ($current && $current['status'] === 'active') {
+            return redirect()->to(site_url('account#membership'))->with('info', 'You already have an active membership.');
+        }
+        $recurring = $plan['type'] === 'subscription';
+        // Automatic renewals run through PayFast; offer only gateways that can bill this plan.
+        $gateways = $this->gateways();
+        if ($recurring && isset($gateways['payfast'])) {
+            $gateways = ['payfast' => 'PayFast (card, debit order) — renews automatically'];
+        }
         if ($this->request->getMethod() === 'POST') {
-            $subscriptionId = (int) (new UserSubscriptionModel())->insert(['user_id' => $this->userId(), 'plan_id' => $planId, 'status' => 'pending'], true);
+            $subscriptionId = (int) (new UserSubscriptionModel())->insert(['user_id' => $this->userId(), 'plan_id' => $planId, 'status' => 'pending', 'updated_at' => date('Y-m-d H:i:s')], true);
             $paymentId      = (int) (new PaymentModel())->insert([
                 'plan_id'         => $planId,
                 'subscription_id' => $subscriptionId,
@@ -200,12 +251,31 @@ class CheckoutController extends BaseController
                 'status'          => 'pending',
             ], true);
 
-            return $this->beginPayment($paymentId, (int) $plan['price_cents'], $plan['currency'], $plan['name'], site_url('dashboard'), site_url('checkout/plan/' . $planId));
+            return $this->beginPayment($paymentId, (int) $plan['price_cents'], $plan['currency'], $plan['name'], site_url('account#membership'), site_url('checkout/plan/' . $planId), null,
+                $recurring ? ['amount_cents' => (int) $plan['price_cents'], 'interval' => $plan['billing_interval'] ?: 'month'] : null, $gateways);
         }
 
-        $interval = $plan['type'] === 'subscription' ? ' / ' . ($plan['billing_interval'] ?: 'month') : ' once';
+        $interval = $recurring ? ' / ' . ($plan['billing_interval'] ?: 'month') : ' once';
 
-        return view('Shop/checkout/product', ['title' => 'Membership', 'kind' => 'Membership', 'name' => $plan['name'], 'description' => 'Access to every membership course' . ($plan['type'] === 'lifetime' ? ', forever.' : '.'), 'price' => (int) $plan['price_cents'], 'currency' => $plan['currency'], 'suffix' => $interval, 'gateways' => $this->gateways(), 'icon' => 'sparkles']);
+        return view('Shop/checkout/product', ['title' => 'Membership', 'kind' => 'Membership', 'name' => $plan['name'],
+            'description' => $recurring ? 'Access to every membership course. Renews automatically each ' . ($plan['billing_interval'] ?: 'month') . ' — cancel any time from your account.' : 'Access to every membership course, forever.',
+            'price' => (int) $plan['price_cents'], 'currency' => $plan['currency'], 'suffix' => $interval, 'gateways' => $gateways, 'icon' => 'sparkles']);
+    }
+
+    /**
+     * Member cancels renewal from their account page.
+     */
+    public function cancelMembership()
+    {
+        $current = Membership::current($this->userId());
+        if (! $current || ! in_array($current['status'], ['active', 'past_due'], true)) {
+            return redirect()->to(site_url('account#membership'))->with('error', 'There is no active membership to cancel.');
+        }
+        if (! Membership::cancel((int) $current['id'])) {
+            return redirect()->to(site_url('account#membership'))->with('error', 'We could not reach PayFast to cancel right now. Please try again in a few minutes or contact us.');
+        }
+
+        return redirect()->to(site_url('account#membership'))->with('message', 'Your membership will not renew. You keep access until the end of the current period.');
     }
 
     /**
@@ -238,14 +308,14 @@ class CheckoutController extends BaseController
         return ENVIRONMENT !== 'production' || site_setting('allow_test_payments') === '1';
     }
 
-    protected function beginPayment(int $paymentId, int $amountCents, string $currency, string $description, string $successUrl, string $cancelUrl, ?string $email = null)
+    protected function beginPayment(int $paymentId, int $amountCents, string $currency, string $description, string $successUrl, string $cancelUrl, ?string $email = null, ?array $recurring = null, ?array $gateways = null)
     {
         if ($amountCents <= 0) {
             $this->confirmPayment($paymentId, 'free order');
 
             return redirect()->to($successUrl)->with('message', 'All done — nothing to pay.');
         }
-        $gateways = $this->gateways();
+        $gateways ??= $this->gateways();
         $chosen   = (string) ($this->request->getPost('gateway') ?: array_key_first($gateways));
         if (! isset($gateways[$chosen])) {
             (new PaymentModel())->update($paymentId, ['status' => 'failed']);
@@ -258,7 +328,7 @@ class CheckoutController extends BaseController
             (new PaymentModel())->update($paymentId, ['gateway' => 'payfast']);
 
             return view('Shop/checkout/payfast_redirect', ['title' => 'Redirecting to PayFast…', 'processUrl' => $payFast->processUrl(),
-                'fields' => $payFast->buildFields((string) $paymentId, $amountCents, $description, $successUrl, $cancelUrl, site_url('webhooks/payfast'), (string) ($email ?: auth()->user()->email ?? ''))]);
+                'fields' => $payFast->buildFields((string) $paymentId, $amountCents, $description, $successUrl, $cancelUrl, site_url('webhooks/payfast'), (string) ($email ?: auth()->user()->email ?? ''), $recurring)]);
         }
         if ($chosen === 'test') {
             (new PaymentModel())->update($paymentId, ['gateway' => 'test']);
@@ -276,7 +346,7 @@ class CheckoutController extends BaseController
     /**
      * Fulfils whatever the payment was for. Idempotent.
      */
-    protected function confirmPayment(int $paymentId, string $via = 'payment gateway'): void
+    protected function confirmPayment(int $paymentId, string $via = 'payment gateway', ?string $token = null): void
     {
         $payments = new PaymentModel();
         $payment  = $payments->find($paymentId);
@@ -284,16 +354,34 @@ class CheckoutController extends BaseController
             return;
         }
         $payments->update($paymentId, ['status' => 'paid']);
+        $userId = (int) $payment['user_id'];
+        $ref    = 'PAY-' . str_pad((string) $paymentId, 6, '0', STR_PAD_LEFT);
 
         if ($payment['order_id']) {
             (new OrderModel())->markPaid((int) $payment['order_id'], $via);
         } elseif ($payment['course_id']) {
-            (new EnrollmentModel())->enroll((int) $payment['course_id'], (int) $payment['user_id'], 'purchase');
+            $course = (new CourseModel())->find($payment['course_id']);
+            (new EnrollmentModel())->enroll((int) $payment['course_id'], $userId, 'purchase', false);
+            if ($course) {
+                Notify::purchaseReceipt($userId, 'Course', $course['title'], (int) $payment['amount_cents'], $payment['currency'], site_url('study/' . $course['slug']), $ref);
+            }
+        } elseif ($payment['section_id']) {
+            $section = (new CourseSectionModel())->find($payment['section_id']);
+            $course  = $section ? (new CourseModel())->find($section['course_id']) : null;
+            if ($section && $course) {
+                (new SectionUnlockModel())->unlock($userId, (int) $section['id']);
+                (new EnrollmentModel())->enroll((int) $course['id'], $userId, 'module', false);
+                Notify::purchaseReceipt($userId, 'Module', $section['title'] . ' — ' . $course['title'], (int) $payment['amount_cents'], $payment['currency'], site_url('study/' . $course['slug']), $ref);
+            }
         } elseif ($payment['lesson_id']) {
-            (new LessonUnlockModel())->unlock((int) $payment['user_id'], (int) $payment['lesson_id']);
+            (new LessonUnlockModel())->unlock($userId, (int) $payment['lesson_id']);
+            $lesson = (new LessonModel())->find($payment['lesson_id']);
+            $course = $lesson ? (new CourseModel())->find($lesson['course_id']) : null;
+            if ($lesson && $course) {
+                Notify::purchaseReceipt($userId, 'Lesson', $lesson['title'], (int) $payment['amount_cents'], $payment['currency'], site_url('study/' . $course['slug'] . '/lesson/' . $lesson['id']), $ref);
+            }
         } elseif ($payment['plan_id'] && $payment['subscription_id']) {
-            $plan = (new SubscriptionPlanModel())->find($payment['plan_id']);
-            (new UserSubscriptionModel())->activate((int) $payment['subscription_id'], $plan);
+            Membership::activate((int) $payment['subscription_id'], $payment['gateway'] ?: null, $token);
         }
     }
 
@@ -312,15 +400,46 @@ class CheckoutController extends BaseController
         return $this->response->setStatusCode(200)->setBody('ok');
     }
 
+    /**
+     * PayFast ITN: first payments, monthly renewals and cancellations.
+     */
     public function payfastNotify()
     {
         $post = $this->request->getPost();
-        if ((new PayFastGateway())->verifySignature($post) && ($post['payment_status'] ?? '') === 'COMPLETE') {
-            $paymentId = (int) ($post['m_payment_id'] ?? 0);
-            $payment   = $paymentId ? (new PaymentModel())->find($paymentId) : null;
-            // Reject notifications whose amount does not match what we asked for.
-            if ($payment && abs((float) ($post['amount_gross'] ?? 0) - ((int) $payment['amount_cents'] / 100)) < 0.01) {
-                $this->confirmPayment($paymentId, 'PayFast');
+        if (! (new PayFastGateway())->validateItn($post)) {
+            return $this->response->setStatusCode(400)->setBody('invalid');
+        }
+        $payments  = new PaymentModel();
+        $paymentId = (int) ($post['m_payment_id'] ?? 0);
+        $payment   = $paymentId ? $payments->find($paymentId) : null;
+        if (! $payment) {
+            return $this->response->setStatusCode(200)->setBody('ok');
+        }
+        $status = strtoupper((string) ($post['payment_status'] ?? ''));
+        $token  = trim((string) ($post['token'] ?? '')) ?: null;
+        $pfId   = (string) ($post['pf_payment_id'] ?? '');
+        $amount = (int) round((float) ($post['amount_gross'] ?? 0) * 100);
+
+        if ($status === 'CANCELLED' && $payment['subscription_id']) {
+            Membership::cancel((int) $payment['subscription_id'], false);
+        } elseif ($status === 'COMPLETE' && $payment['status'] !== 'paid') {
+            // First payment: reject anything that does not match what we asked for.
+            if (abs($amount - (int) $payment['amount_cents']) <= 1) {
+                $payments->update($paymentId, ['gateway' => 'payfast', 'external_id' => $pfId ?: null]);
+                $this->confirmPayment($paymentId, 'PayFast', $token);
+            }
+        } elseif ($status === 'COMPLETE' && $payment['subscription_id'] && $pfId !== '' && ! $payments->where('external_id', $pfId)->countAllResults()) {
+            // A recurring charge on an existing PayFast subscription.
+            $plan = (new SubscriptionPlanModel())->find($payment['plan_id']);
+            if ($plan && abs($amount - (int) $plan['price_cents']) <= 1) {
+                $payments->insert([
+                    'plan_id' => $payment['plan_id'], 'subscription_id' => $payment['subscription_id'], 'user_id' => $payment['user_id'],
+                    'gateway' => 'payfast', 'external_id' => $pfId, 'amount_cents' => $amount, 'currency' => $plan['currency'], 'status' => 'paid',
+                ]);
+                if ($token) {
+                    (new UserSubscriptionModel())->update((int) $payment['subscription_id'], ['gateway_token' => $token]);
+                }
+                Membership::renew((int) $payment['subscription_id']);
             }
         }
 

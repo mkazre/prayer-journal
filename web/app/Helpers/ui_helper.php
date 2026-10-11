@@ -106,14 +106,14 @@ if (! function_exists('user_profile')) {
     /**
      * Profile row (display name, avatar, preferences) for a user, cached.
      */
-    function user_profile(?int $userId = null): array
+    function user_profile(?int $userId = null, bool $fresh = false): array
     {
         static $cache = [];
         $userId ??= auth()->loggedIn() ? (int) auth()->id() : 0;
         if ($userId === 0) {
             return [];
         }
-        if (! array_key_exists($userId, $cache)) {
+        if ($fresh || ! array_key_exists($userId, $cache)) {
             $row = db_connect()->table('user_profiles')->where('user_id', $userId)->get()->getRowArray();
             $cache[$userId] = $row ?: [];
         }
@@ -128,7 +128,7 @@ if (! function_exists('user_prefs')) {
      *
      * @return array{theme:string,text:string,reading:string,bible_layout:string,verse_numbers:bool,journal_reminders:bool}
      */
-    function user_prefs(?int $userId = null): array
+    function user_prefs(?int $userId = null, bool $fresh = false): array
     {
         $defaults = [
             'theme'             => 'system',
@@ -137,8 +137,11 @@ if (! function_exists('user_prefs')) {
             'bible_layout'      => 'paragraph',
             'verse_numbers'     => true,
             'journal_reminders' => true,
+            'email_courses'     => true,
+            'email_community'   => true,
+            'email_reminders'   => true,
         ];
-        $profile = user_profile($userId);
+        $profile = user_profile($userId, $fresh);
         $prefs   = json_decode($profile['preferences'] ?? '', true);
 
         return array_merge($defaults, is_array($prefs) ? $prefs : []);

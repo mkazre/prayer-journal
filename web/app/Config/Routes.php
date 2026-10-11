@@ -102,6 +102,8 @@ $routes->match(['GET', 'POST'], 'checkout/cart', $shop . 'CheckoutController::ca
 $routes->match(['GET', 'POST'], 'checkout/course/(:num)', $shop . 'CheckoutController::course/$1');
 $routes->match(['GET', 'POST'], 'checkout/lesson/(:num)', $shop . 'CheckoutController::lesson/$1');
 $routes->match(['GET', 'POST'], 'checkout/plan/(:num)', $shop . 'CheckoutController::plan/$1');
+$routes->match(['GET', 'POST'], 'checkout/module/(:num)', $shop . 'CheckoutController::module/$1');
+$routes->post('account/membership/cancel', $shop . 'CheckoutController::cancelMembership', ['filter' => 'session']);
 $routes->post('webhooks/stripe', $shop . 'CheckoutController::webhook');
 $routes->post('webhooks/payfast', $shop . 'CheckoutController::payfastNotify');
 $routes->get('orders/(:num)', $shop . 'OrderController::show/$1');
@@ -202,6 +204,7 @@ $routes->group('studio', ['filter' => ['session', 'group:superadmin,admin,manage
     $routes->get('plans', $std . 'PlanController::index');
     $routes->post('plans', $std . 'PlanController::save');
     $routes->post('plans/(:num)/toggle', $std . 'PlanController::toggle/$1');
+    $routes->post('memberships/(:num)/cancel', $std . 'PlanController::cancelMember/$1');
     $routes->get('reports', $std . 'ReportController::index');
 
     // Community & site
@@ -214,6 +217,11 @@ $routes->group('studio', ['filter' => ['session', 'group:superadmin,admin,manage
     $routes->post('users/(:num)/suspend', $std . 'SiteController::suspendUser/$1');
     $routes->post('users/(:num)/delete', $std . 'SiteController::deleteUser/$1');
     $routes->match(['GET', 'POST'], 'settings', $std . 'SiteController::settings');
+    $routes->post('settings/test-email', $std . 'SiteController::testEmail');
+    $routes->get('settings/preview-reminder', $std . 'SiteController::previewReminder');
+    $routes->get('emails', $std . 'SiteController::emails');
+    $routes->get('emails/(:num)', $std . 'SiteController::viewEmail/$1');
+    $routes->post('emails/(:num)/retry', $std . 'SiteController::retryEmail/$1');
 });
 
 // Old back-office URLs now live in Studio.

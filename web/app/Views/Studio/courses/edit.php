@@ -48,6 +48,8 @@
                     </div>
                 </div>
                 <div class="field"><label class="label" for="price">Price (<?= esc(store_currency()) ?>)</label><input class="input" id="price" name="price" type="number" min="0" step="0.01" value="<?= number_format(((int) $c['price_cents']) / 100, 2, '.', '') ?>"><span class="help">Used when access is "One-time price".</span></div>
+                <label class="switch"><input type="checkbox" name="in_membership" value="1" <?= ! empty(\App\Modules\Lms\Models\CourseModel::settings($c)['in_membership']) ? 'checked' : '' ?>><span class="track"></span>Also included in membership plans</label>
+                <p class="help mb-0">With "One-time price" and this switched on, people can buy the course <em>or</em> get it through a monthly membership. To sell modules individually, set a price on each module under <strong>Curriculum</strong>.</p>
             </section>
             <section class="card card-body">
                 <h3>Organisation</h3>

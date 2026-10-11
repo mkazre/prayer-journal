@@ -9,7 +9,7 @@ class CourseSectionModel extends Model
     protected $table         = 'course_sections';
     protected $primaryKey    = 'id';
     protected $returnType    = 'array';
-    protected $allowedFields = ['course_id', 'title', 'summary', 'position'];
+    protected $allowedFields = ['course_id', 'title', 'summary', 'position', 'price_cents'];
     protected $useTimestamps = true;
 
     public function nextPosition(int $courseId): int

@@ -98,6 +98,9 @@ class AppApiController extends BaseApiController
             return $this->fail('Request not found.', 404);
         }
         $added = $model->prayFor($id, $this->currentUser()->id);
+        if ($added && (int) $request['user_id'] !== (int) $this->currentUser()->id) {
+            \App\Libraries\Notify::prayedFor((int) $request['user_id'], (string) $request['body'], display_name(['id' => $this->currentUser()->id, 'username' => $this->currentUser()->username]));
+        }
 
         return $this->ok(['prayed' => true, 'added' => $added, 'prayer_count' => (int) $request['prayer_count'] + ($added ? 1 : 0)]);
     }

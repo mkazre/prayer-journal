@@ -8,6 +8,8 @@
     <div class="tabs" role="tablist">
         <button class="tab is-active" data-tab="profile" role="tab"><?= icon('user') ?>Profile</button>
         <button class="tab" data-tab="preferences" role="tab"><?= icon('sliders') ?>Preferences</button>
+        <button class="tab" data-tab="membership" role="tab"><?= icon('sparkles') ?>Membership</button>
+        <button class="tab" data-tab="emails" role="tab"><?= icon('mail') ?>Emails</button>
         <button class="tab" data-tab="security" role="tab"><?= icon('shield') ?>Security</button>
     </div>
 
@@ -51,6 +53,61 @@
             <div class="row between"><div><strong>Bible layout</strong><div class="text-sm text-muted">Flowing paragraphs or one verse per line.</div></div><?= $seg('bible_layout', ['paragraph' => ['Paragraphs', 'file-text'], 'verse' => ['Verse by verse', 'list']], $prefs['bible_layout']) ?></div>
             <label class="switch"><input type="checkbox" name="verse_numbers" value="1" <?= $prefs['verse_numbers'] ? 'checked' : '' ?> onchange="this.nextElementSibling.nextElementSibling.value=this.checked?1:0"><span class="track"></span><input type="hidden" name="verse_numbers" value="<?= $prefs['verse_numbers'] ? 1 : 0 ?>">Show verse numbers in the Bible reader</label>
             <div><button class="btn btn-primary" type="submit" onclick="setTimeout(function(){location.reload()},500)"><?= icon('save') ?>Save preferences</button></div>
+        </form>
+    </section>
+
+    <section class="tab-panel" id="membership">
+        <?php
+        $m      = $membership;
+        $labels = ['active' => ['Active', 'success'], 'past_due' => ['Payment overdue', 'warning'], 'cancelled' => ['Cancelled — access until period end', 'brand']];
+        ?>
+        <?php if (! $m) : ?>
+            <div class="card empty"><div class="feature-icon"><?= icon('sparkles', 'icon-lg') ?></div><h3>No active membership</h3><p>Membership unlocks every membership course for one monthly price. Cancel any time.</p><a class="btn btn-primary" href="<?= site_url('pricing') ?>">See plans</a></div>
+        <?php else : [$label, $tone] = $labels[$m['status']] ?? [ucfirst($m['status']), 'brand']; ?>
+            <div class="card card-body stack">
+                <div class="row between">
+                    <div><div class="text-xs text-muted">Your plan</div><h3 class="mb-0"><?= esc($m['plan']['name'] ?? 'Membership') ?></h3></div>
+                    <span class="badge badge-<?= $tone ?>"><?= esc($label) ?></span>
+                </div>
+                <div class="grid grid-3">
+                    <div><div class="text-xs text-muted">Price</div><strong><?= $m['plan'] ? money((int) $m['plan']['price_cents'], $m['plan']['currency']) . ($m['plan']['type'] === 'subscription' ? ' / ' . ($m['plan']['billing_interval'] === 'year' ? 'year' : 'month') : ' once') : '' ?></strong></div>
+                    <div><div class="text-xs text-muted"><?= $m['status'] === 'cancelled' ? 'Access until' : ($m['renews'] ? 'Next payment' : 'Access until') ?></div><strong><?= $m['expires_at'] ? nice_date($m['expires_at'], 'j F Y') : 'Lifetime' ?></strong></div>
+                    <div><div class="text-xs text-muted">Member since</div><strong><?= $m['started_at'] ? nice_date($m['started_at'], 'j F Y') : '—' ?></strong></div>
+                </div>
+                <?php if ($m['status'] === 'past_due') : ?>
+                    <div class="alert alert-warning"><?= icon('alert') ?><div>We could not collect your last payment. Please update your card before <strong><?= nice_date(date('Y-m-d H:i:s', strtotime($m['expires_at']) + \App\Modules\Shop\Services\Membership::GRACE_DAYS * 86400), 'j F Y') ?></strong> to keep your access.</div></div>
+                <?php endif ?>
+                <div class="row gap-sm">
+                    <?php if ($m['gateway'] === 'payfast' && $m['gateway_token'] && in_array($m['status'], ['active', 'past_due'], true)) : ?>
+                        <a class="btn" href="<?= esc(\App\Modules\Shop\Services\PayFastGateway::updateCardUrl($m['gateway_token'], site_url('account#membership')), 'attr') ?>"><?= icon('credit-card') ?>Update payment card</a>
+                    <?php endif ?>
+                    <?php if (in_array($m['status'], ['active', 'past_due'], true) && ($m['plan']['type'] ?? '') === 'subscription') : ?>
+                        <form method="post" action="<?= site_url('account/membership/cancel') ?>"><?= csrf_field() ?><button class="btn btn-ghost" type="submit" data-confirm="Cancel your membership? You keep access until <?= $m['expires_at'] ? esc(nice_date($m['expires_at'], 'j F Y'), 'attr') : 'the end of the period' ?>."><?= icon('x') ?>Cancel membership</button></form>
+                    <?php elseif ($m['status'] === 'cancelled') : ?>
+                        <a class="btn btn-primary" href="<?= site_url('pricing') ?>"><?= icon('refresh') ?>Rejoin</a>
+                    <?php endif ?>
+                </div>
+            </div>
+        <?php endif ?>
+        <?php if ($memberPayments) : ?>
+            <div class="card mt-3">
+                <div class="card-header"><h2><?= icon('receipt') ?> Payment history</h2></div>
+                <div class="table-wrap" style="border:0;border-radius:0"><table class="table">
+                    <thead><tr><th>Date</th><th>Plan</th><th>Method</th><th class="num">Amount</th></tr></thead>
+                    <tbody><?php foreach ($memberPayments as $p) : ?><tr><td class="text-sm"><?= nice_date($p['created_at'], 'j M Y') ?></td><td class="text-sm"><?= esc($p['plan_name']) ?></td><td class="text-sm"><?= esc(ucfirst((string) $p['gateway'])) ?></td><td class="num"><?= money((int) $p['amount_cents'], $p['currency']) ?></td></tr><?php endforeach ?></tbody>
+                </table></div>
+            </div>
+        <?php endif ?>
+    </section>
+
+    <section class="tab-panel" id="emails">
+        <form class="card card-body stack" method="post" action="<?= site_url('account/preferences') ?>" data-ajax>
+            <?= csrf_field() ?>
+            <div><h3 class="mb-0">Email preferences</h3><p class="text-sm text-muted">Receipts, membership billing and account security emails are always sent. Choose which other emails you would like.</p></div>
+            <?php foreach (['email_reminders' => ['Learning reminders', 'A friendly nudge with your progress and next lesson when you have been away for a while.'], 'email_courses' => ['Course updates', 'Announcements from the instructors of your courses.'], 'email_community' => ['Prayer wall & discussions', 'When someone prays for your request or replies to your question.']] as $key => [$label, $help]) : ?>
+                <label class="switch"><input type="checkbox" value="1" <?= ! empty($prefs[$key]) ? 'checked' : '' ?> onchange="this.nextElementSibling.nextElementSibling.value=this.checked?1:0"><span class="track"></span><input type="hidden" name="<?= $key ?>" value="<?= ! empty($prefs[$key]) ? 1 : 0 ?>"><span><strong><?= $label ?></strong><br><span class="text-sm text-muted"><?= $help ?></span></span></label>
+            <?php endforeach ?>
+            <div><button class="btn btn-primary" type="submit"><?= icon('save') ?>Save email preferences</button></div>
         </form>
     </section>
 

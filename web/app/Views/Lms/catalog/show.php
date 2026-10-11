@@ -6,6 +6,9 @@ $lessonCount = Curriculum::countItems($sections, 'lesson');
 $quizCount   = Curriculum::countItems($sections, 'quiz');
 $minutes     = Curriculum::totalMinutes($sections);
 $free        = (int) $course['price_cents'] === 0 && ($course['access_mode'] ?? 'free') !== 'subscription';
+$canBuy      = (int) $course['price_cents'] > 0 && ($course['access_mode'] ?? 'free') !== 'subscription';
+$planLabel   = $cheapestPlan ? money((int) $cheapestPlan['price_cents'], $cheapestPlan['currency']) . ($cheapestPlan['type'] === 'subscription' ? '/' . ($cheapestPlan['billing_interval'] === 'year' ? 'year' : 'month') : '') : null;
+$sellsModules = ! $free && ! $enrolled && array_filter($sections, static fn ($s) => $s['price_cents'] > 0) !== [];
 $lines       = static fn (?string $t) => array_values(array_filter(array_map('trim', explode("\n", (string) $t))));
 $firstPreview = null;
 foreach (Curriculum::flatten($sections) as $it) { if ($it['kind'] === 'lesson' && $it['is_preview']) { $firstPreview = $it; break; } }
@@ -61,11 +64,19 @@ foreach (Curriculum::flatten($sections) as $it) { if ($it['kind'] === 'lesson' &
                         <details <?= $i === 0 ? 'open' : '' ?>>
                             <summary>
                                 <span class="qnum"><?= $i + 1 ?></span>
-                                <div><div><?= esc($s['title']) ?></div><div class="text-xs text-muted fw-500"><?= count($s['items']) ?> items · <?= Curriculum::duration($mins) ?></div></div>
+                                <div class="grow"><div><?= esc($s['title']) ?></div><div class="text-xs text-muted fw-500"><?= count($s['items']) ?> items · <?= Curriculum::duration($mins) ?></div></div>
+                                <?php if ($ownedSections !== null && in_array((int) $s['id'], $ownedSections, true)) : ?>
+                                    <span class="badge badge-success"><?= icon('check') ?>Yours</span>
+                                <?php elseif ($sellsModules && $s['price_cents'] > 0) : ?>
+                                    <span class="badge badge-accent"><?= money((int) $s['price_cents'], $course['currency']) ?></span>
+                                <?php endif ?>
                                 <?= icon('chevron-down', 'chev') ?>
                             </summary>
                             <div class="acc-body">
                                 <?php if ($s['summary']) : ?><p class="text-sm text-2"><?= esc($s['summary']) ?></p><?php endif ?>
+                                <?php if ($sellsModules && $s['price_cents'] > 0 && ! ($ownedSections !== null && in_array((int) $s['id'], $ownedSections, true))) : ?>
+                                    <div class="row between mb-2 module-buy"><span class="text-sm">Just want this module? Get lifetime access to its <?= count($s['items']) ?> lessons and activities.</span><a class="btn btn-sm btn-soft" href="<?= site_url('checkout/module/' . $s['id']) ?>"><?= icon('unlock') ?>Buy module · <?= money((int) $s['price_cents'], $course['currency']) ?></a></div>
+                                <?php endif ?>
                                 <?php foreach ($s['items'] as $it) : ?>
                                     <div class="lesson-row">
                                         <?= icon(lesson_icon($it['type'])) ?>
@@ -163,20 +174,33 @@ foreach (Curriculum::flatten($sections) as $it) { if ($it['kind'] === 'lesson' &
                 <div class="card-body stack">
                     <div class="row between">
                         <span class="price <?= $free ? 'price-free' : '' ?>" style="font-size:1.8rem"><?= ($course['access_mode'] ?? '') === 'subscription' ? 'Membership' : price_label((int) $course['price_cents'], $course['currency']) ?></span>
-                        <?php if ($enrolled) : ?><span class="badge badge-success"><?= icon('check') ?>Enrolled</span><?php endif ?>
+                        <?php if ($enrolled) : ?><span class="badge badge-success"><?= icon('check') ?>Enrolled</span><?php elseif ($inMembership && ($course['access_mode'] ?? '') !== 'subscription') : ?><span class="badge badge-brand"><?= icon('sparkles') ?>In membership</span><?php endif ?>
                     </div>
+                    <?php if ($lapsed) : ?><div class="alert alert-warning text-sm"><?= icon('clock') ?><div>Your membership is not active, so this course is paused. Your progress is saved.</div></div><?php endif ?>
                     <?php if ($enrolled) : ?>
                         <div><div class="progress"><span style="width:<?= (int) $enrollment['progress_percent'] ?>%"></span></div><div class="text-xs text-muted mt-1"><?= (int) $enrollment['progress_percent'] ?>% complete</div></div>
                         <a class="btn btn-primary btn-lg btn-block" href="<?= site_url('study/' . $course['slug']) ?>"><?= icon('play') ?><?= (int) $enrollment['progress_percent'] > 0 ? 'Continue learning' : 'Start learning' ?></a>
                     <?php elseif ($full) : ?>
                         <button class="btn btn-lg btn-block" disabled>Course is full</button>
                     <?php elseif (auth()->loggedIn()) : ?>
-                        <form method="post" action="<?= site_url('courses/' . $course['slug'] . '/enroll') ?>"><?= csrf_field() ?>
-                            <button class="btn btn-primary btn-lg btn-block" type="submit"><?= $free ? icon('sparkles') . 'Enroll for free' : icon('lock') . 'Enroll now' ?></button>
-                        </form>
+                        <?php if ($ownedSections !== null) : ?>
+                            <div class="text-sm">You own <strong><?= count($ownedSections) ?> of <?= count($sections) ?></strong> modules.</div>
+                            <a class="btn btn-primary btn-lg btn-block" href="<?= site_url('study/' . $course['slug']) ?>"><?= icon('play') ?>Continue learning</a>
+                        <?php endif ?>
+                        <?php if ($free) : ?>
+                            <form method="post" action="<?= site_url('courses/' . $course['slug'] . '/enroll') ?>"><?= csrf_field() ?><button class="btn btn-primary btn-lg btn-block" type="submit"><?= icon('sparkles') ?>Enroll for free</button></form>
+                        <?php endif ?>
+                        <?php if ($canBuy) : ?>
+                            <a class="btn <?= $ownedSections === null ? 'btn-primary btn-lg' : '' ?> btn-block" href="<?= site_url('checkout/course/' . $course['id']) ?>"><?= icon('unlock') ?><?= $ownedSections === null ? 'Buy the course' : 'Unlock the full course' ?> · <?= money((int) $course['price_cents'], $course['currency']) ?></a>
+                        <?php endif ?>
+                        <?php if ($inMembership && $planLabel) : ?>
+                            <a class="btn <?= $canBuy || $ownedSections !== null ? 'btn-soft' : 'btn-primary btn-lg' ?> btn-block" href="<?= site_url('pricing') ?>"><?= icon('sparkles') ?><?= $canBuy ? 'Or join membership' : 'Join membership' ?> · from <?= $planLabel ?></a>
+                        <?php endif ?>
+                        <?php if ($sellsModules && $ownedSections === null) : ?><p class="text-xs text-muted text-center mb-0">Prefer to start small? Each module can also be bought on its own (see Course content).</p><?php endif ?>
                     <?php else : ?>
-                        <a class="btn btn-primary btn-lg btn-block" href="<?= site_url('register') ?>"><?= icon('sparkles') ?><?= $free ? 'Sign up to enroll free' : 'Sign up to enroll' ?></a>
+                        <a class="btn btn-primary btn-lg btn-block" href="<?= site_url('register') ?>"><?= icon('sparkles') ?><?= $free ? 'Sign up to enroll free' : 'Sign up to get started' ?></a>
                         <a class="btn btn-block" href="<?= site_url('login') ?>">I already have an account</a>
+                        <?php if ($inMembership && $planLabel) : ?><p class="text-xs text-muted text-center mb-0">Included in membership from <?= $planLabel ?><?= $canBuy ? ', or buy it once' : '' ?>.</p><?php endif ?>
                     <?php endif ?>
                     <?php if ($firstPreview && ! $enrolled) : ?>
                         <a class="btn btn-soft btn-block" href="<?= site_url('courses/' . $course['slug'] . '/preview/' . $firstPreview['id']) ?>"><?= icon('eye') ?>Preview a lesson</a>

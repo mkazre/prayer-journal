@@ -68,9 +68,7 @@ class OrderController extends StudioController
         }
         $orders->setStatus($id, 'shipped', $this->userId());
         $orders->log($id, 'fulfilment', 'Shipped' . ($carrier ? ' with ' . $carrier : '') . ($track ? ' · tracking ' . $track : '') . '.', $this->userId());
-        if ($order['user_id']) {
-            $db->table('notifications')->insert(['user_id' => $order['user_id'], 'type' => 'order', 'body' => 'Your order ' . $order['order_number'] . ' has shipped' . ($track ? ' (tracking ' . $track . ')' : '') . '.', 'created_at' => date('Y-m-d H:i:s')]);
-        }
+        \App\Libraries\Notify::orderShipped($id, $carrier ?: null, $track ?: null);
 
         return $this->done('Marked as shipped.', [], site_url('studio/orders/' . $id));
     }

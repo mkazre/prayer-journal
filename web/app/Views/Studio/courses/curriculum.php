@@ -18,7 +18,7 @@
             <div class="builder-section-head">
                 <?php if ($s['id']) : ?><span class="drag-handle" tabindex="0" title="Drag to reorder module" aria-label="Reorder module"><?= icon('grip') ?></span><?php endif ?>
                 <span class="qnum"><?= $si + 1 ?></span>
-                <div class="grow"><h3><?= esc($s['title']) ?></h3><?php if ($s['summary']) : ?><div class="text-xs text-muted"><?= esc($s['summary']) ?></div><?php endif ?></div>
+                <div class="grow"><h3><?= esc($s['title']) ?><?php if (! empty($s['price_cents'])) : ?> <span class="badge badge-accent" title="Sold on its own"><?= money((int) $s['price_cents']) ?></span><?php endif ?></h3><?php if ($s['summary']) : ?><div class="text-xs text-muted"><?= esc($s['summary']) ?></div><?php endif ?></div>
                 <span class="text-xs text-muted hide-sm"><?= count($s['items']) ?> items · <?= Curriculum::duration(Curriculum::totalMinutes([$s])) ?></span>
                 <div class="dropdown" data-dropdown>
                     <button class="btn btn-sm" type="button" data-dropdown-toggle><?= icon('plus') ?>Add</button>
@@ -76,6 +76,7 @@
                     <div class="modal-body">
                         <div class="field"><label class="label">Title</label><input class="input" name="title" value="<?= esc($s['title'], 'attr') ?>" required maxlength="200"></div>
                         <div class="field"><label class="label">Summary <span class="opt">(shown to learners)</span></label><textarea class="textarea" name="summary" rows="3"><?= esc((string) $s['summary']) ?></textarea></div>
+                        <div class="field"><label class="label">Sell this module on its own (<?= esc(store_currency()) ?>)</label><input class="input" name="price" type="number" min="0" step="0.01" value="<?= number_format((int) ($s['price_cents'] ?? 0) / 100, 2, '.', '') ?>"><span class="help">Leave at 0 to sell only with the full course or membership. Buyers get lifetime access to this module's lessons.</span></div>
                     </div>
                     <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>Cancel</button><button class="btn btn-primary" type="submit">Save</button></div>
                 </form>

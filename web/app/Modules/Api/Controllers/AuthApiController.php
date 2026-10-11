@@ -30,6 +30,7 @@ class AuthApiController extends BaseApiController
         $users->save($user);
         $user = $users->findById($users->getInsertID());
         $user->addGroup('student');
+        \App\Libraries\Notify::welcome((int) $user->id);
 
         return $this->issueToken($user, 201);
     }

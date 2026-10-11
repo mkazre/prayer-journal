@@ -50,6 +50,8 @@ class CourseModel extends Model
         'completion_message'    => '',
         'default_prompts'       => [],
         'preview_public'        => true,
+        'in_membership'         => false,
+        'copy_protection'       => true,
     ];
 
     public function published()

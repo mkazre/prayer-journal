@@ -32,6 +32,7 @@ if ($isManager) {
     $site = [['studio/prayer', 'Prayer wall', 'hands', 'prayer']];
     if ($isAdmin) {
         $site[] = ['studio/users', 'Users & roles', 'shield', 'users'];
+        $site[] = ['studio/emails', 'Email log', 'mail', 'emails'];
         $site[] = ['studio/settings', 'Site settings', 'settings', 'settings'];
     }
     $nav[] = ['Community & site', $site];

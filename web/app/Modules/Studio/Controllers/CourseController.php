@@ -106,6 +106,7 @@ class CourseController extends StudioController
                 $data['thumbnail_path'] = null;
             }
             $model->skipValidation(true)->update($id, $data);
+            $model->saveSettings($id, ['in_membership' => $data['access_mode'] === 'paid' && $this->bool('in_membership')]);
 
             return redirect()->to(site_url('studio/courses/' . $id))->with('message', 'Course details saved.');
         }
@@ -273,12 +274,9 @@ class CourseController extends StudioController
             }
             $model->insert(['course_id' => $id, 'user_id' => $this->userId(), 'title' => $title, 'body' => $body, 'created_at' => date('Y-m-d H:i:s')]);
             // Let enrolled learners know.
-            $db = db_connect();
-            foreach ($db->table('enrollments')->select('user_id')->where('course_id', $id)->where('status !=', 'revoked')->get()->getResultArray() as $e) {
-                $db->table('notifications')->insert(['user_id' => $e['user_id'], 'type' => 'announcement', 'body' => $course['title'] . ': ' . $title, 'created_at' => date('Y-m-d H:i:s')]);
-            }
+            \App\Libraries\Notify::announcement($course, $title, $body);
 
-            return redirect()->back()->with('message', 'Announcement posted to all learners.');
+            return redirect()->back()->with('message', 'Announcement posted and emailed to all learners.');
         }
 
         return $this->render('courses/announcements', ['title' => 'Announcements · ' . $course['title'], 'active' => 'courses', 'tab' => 'announcements', 'course' => $course, 'items' => $model->forCourse($id, 50)]);

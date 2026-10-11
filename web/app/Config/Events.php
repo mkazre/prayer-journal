@@ -72,4 +72,5 @@ Events::on('register', static function ($user): void {
     if (! $user->inGroup(...array_keys(config('AuthGroups')->groups))) {
         $user->addGroup(config('AuthGroups')->defaultGroup);
     }
+    \App\Libraries\Notify::welcome((int) $user->id);
 });

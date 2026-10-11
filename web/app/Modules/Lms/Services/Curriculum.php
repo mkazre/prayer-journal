@@ -70,7 +70,7 @@ class Curriculum
         foreach ($sections as $s) {
             $items = $bySection[(int) $s['id']] ?? [];
             unset($bySection[(int) $s['id']]);
-            $out[] = ['id' => (int) $s['id'], 'title' => $s['title'], 'summary' => $s['summary'], 'items' => self::sortItems($items)];
+            $out[] = ['id' => (int) $s['id'], 'title' => $s['title'], 'summary' => $s['summary'], 'price_cents' => (int) ($s['price_cents'] ?? 0), 'items' => self::sortItems($items)];
         }
         // Anything not in a module (legacy content, or a deleted module).
         $loose = [];
@@ -78,7 +78,7 @@ class Curriculum
             $loose = array_merge($loose, $items);
         }
         if ($loose !== []) {
-            array_unshift($out, ['id' => null, 'title' => $sections === [] ? 'Course content' : 'General', 'summary' => null, 'items' => self::sortItems($loose)]);
+            array_unshift($out, ['id' => null, 'title' => $sections === [] ? 'Course content' : 'General', 'summary' => null, 'price_cents' => 0, 'items' => self::sortItems($loose)]);
         }
 
         return $out;
@@ -129,12 +129,16 @@ class Curriculum
             $passedQuizzes = (new \App\Modules\Lms\Models\QuizAttemptModel())->passedQuizIds($userId, (int) $course['id']);
             $submitted = array_map('intval', array_column($db->table('assignment_submissions s')->select('s.assignment_id')->join('assignments a', 'a.id = s.assignment_id')->where('s.user_id', $userId)->where('a.course_id', $course['id'])->get()->getResultArray(), 'assignment_id'));
         }
+        // Module-only learners: everything outside the modules they bought stays locked.
+        $owned        = $enrollment ? CourseAccess::ownedSections($enrollment, (int) $course['id'], $userId) : null;
         $enrolledAt   = $enrollment ? strtotime((string) $enrollment['enrolled_at']) : time();
         $previousDone = true;
         $now          = time();
 
         foreach ($sections as &$section) {
-            $doneCount = 0;
+            $doneCount        = 0;
+            $sectionLocked    = $owned !== null && ! in_array((int) $section['id'], $owned, true);
+            $section['owned'] = $owned === null ? (bool) $enrollment : ! $sectionLocked;
             foreach ($section['items'] as &$item) {
                 $done = match ($item['kind']) {
                     'lesson'     => in_array($item['id'], $doneLessons, true),
@@ -147,6 +151,9 @@ class Curriculum
                 if (! $enrollment) {
                     $locked = ! ($item['kind'] === 'lesson' && $item['is_preview']);
                     $reason = $locked ? 'Enroll to unlock' : null;
+                } elseif ($sectionLocked && ! ($item['kind'] === 'lesson' && $item['is_preview'])) {
+                    $locked = true;
+                    $reason = ($section['price_cents'] ?? 0) > 0 ? 'Buy this module to unlock' : 'Buy the full course to unlock';
                 } else {
                     if ($item['available_at'] && strtotime($item['available_at']) > $now) {
                         $opensAt = strtotime($item['available_at']);
@@ -220,16 +227,21 @@ class Curriculum
         }
         $db->table('enrollments')->where('id', $enrollmentId)->update($data);
 
+        $code = null;
         if ($complete && $settings['certificate_enabled']) {
-            $exists = $db->table('certificates')->where(['course_id' => $course['id'], 'user_id' => $enrollment['user_id']])->countAllResults();
-            if (! $exists) {
+            $code = $db->table('certificates')->where(['course_id' => $course['id'], 'user_id' => $enrollment['user_id']])->get()->getRow('certificate_code');
+            if (! $code) {
+                $code = strtoupper(bin2hex(random_bytes(6)));
                 $db->table('certificates')->insert([
                     'course_id'        => $course['id'],
                     'user_id'          => $enrollment['user_id'],
-                    'certificate_code' => strtoupper(bin2hex(random_bytes(6))),
+                    'certificate_code' => $code,
                     'issued_at'        => date('Y-m-d H:i:s'),
                 ]);
             }
+        }
+        if ($complete && $enrollment['status'] !== 'completed') {
+            \App\Libraries\Notify::courseCompleted((int) $enrollment['user_id'], $course, $code);
         }
 
         return ['percent' => $percent, 'complete' => $complete, 'done' => $done, 'total' => $total];

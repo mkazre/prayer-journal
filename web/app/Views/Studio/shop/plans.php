@@ -2,7 +2,7 @@
 <?= $this->section('crumbs') ?><a href="<?= site_url('studio') ?>">Studio</a><?= icon('chevron-right') ?><span>Membership plans</span><?= $this->endSection() ?>
 <?= $this->section('content') ?>
 <?php
-$memberCourses = array_filter($courses, static fn ($c) => $c['access_mode'] === 'subscription');
+$memberCourses = array_filter($courses, static fn ($c) => \App\Modules\Lms\Services\CourseAccess::inMembership($c));
 $modal = static function (array $p): string {
     $id = $p['id'] ?? 0;
     ob_start(); ?>
@@ -48,6 +48,27 @@ $modal = static function (array $p): string {
     <?php endforeach ?>
 </div>
 <?php endif ?>
+
+<section class="card mt-3">
+    <div class="card-header"><h2><?= icon('users') ?> Members</h2><span class="text-sm text-muted">Billing runs through PayFast. Missed payments get reminders, then a <?= \App\Modules\Shop\Services\Membership::GRACE_DAYS ?>-day grace period, then access is suspended automatically.</span></div>
+    <?php if ($members === []) : ?><div class="card-body text-sm text-muted">No members yet.</div><?php else : ?>
+    <div class="table-wrap" style="border:0;border-radius:0"><table class="table">
+        <thead><tr><th>Member</th><th>Plan</th><th>Status</th><th>Next payment / ends</th><th>Last payment</th><th></th></tr></thead>
+        <tbody>
+            <?php foreach ($members as $m) : [$label, $tone] = ['active' => ['Active', 'badge-success'], 'past_due' => ['Payment overdue', 'badge-warning'], 'cancelled' => ['Cancelled', ''], 'expired' => ['Ended / suspended', 'badge-danger']][$m['status']] ?? [ucfirst($m['status']), '']; ?>
+                <tr>
+                    <td class="text-sm"><span class="fw-600"><?= esc($m['display_name'] ?: $m['username']) ?></span><div class="text-xs text-muted"><?= esc((string) $m['email']) ?></div></td>
+                    <td class="text-sm"><?= esc($m['plan_name']) ?><div class="text-xs text-muted"><?= money((int) $m['price_cents'], $m['currency']) ?><?= $m['renews'] ? ' · auto-renews' : '' ?></div></td>
+                    <td><span class="badge badge-dot <?= $tone ?>"><?= $label ?></span></td>
+                    <td class="text-sm nowrap"><?= $m['expires_at'] ? nice_date($m['expires_at'], 'j M Y') : 'Lifetime' ?></td>
+                    <td class="text-sm nowrap text-muted"><?= $m['last_payment_at'] ? nice_date($m['last_payment_at'], 'j M Y') : '—' ?></td>
+                    <td class="text-right"><?php if (in_array($m['status'], ['active', 'past_due'], true)) : ?><form method="post" action="<?= site_url('studio/memberships/' . $m['id'] . '/cancel') ?>" data-ajax data-ajax-reload><?= csrf_field() ?><button class="btn btn-sm btn-ghost" type="submit" data-confirm="Cancel this membership? Billing stops; access continues to the end of the paid period."><?= icon('x') ?>Cancel</button></form><?php endif ?></td>
+                </tr>
+            <?php endforeach ?>
+        </tbody>
+    </table></div>
+    <?php endif ?>
+</section>
 
 <section class="card mt-3">
     <div class="card-header"><h2><?= icon('graduation') ?> Included courses</h2><span class="text-sm text-muted"><?= count($memberCourses) ?> of <?= count($courses) ?></span></div>

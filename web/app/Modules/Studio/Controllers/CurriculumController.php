@@ -74,7 +74,7 @@ class CurriculumController extends StudioController
         if ($title === '') {
             return $this->failed('Give the module a title.');
         }
-        (new CourseSectionModel())->update($sectionId, ['title' => mb_substr($title, 0, 200), 'summary' => trim((string) $this->post('summary')) ?: null]);
+        (new CourseSectionModel())->update($sectionId, ['title' => mb_substr($title, 0, 200), 'summary' => trim((string) $this->post('summary')) ?: null, 'price_cents' => max(0, $this->money('price'))]);
 
         return $this->done('Module updated.', [], site_url('studio/courses/' . $section['course_id'] . '/curriculum'));
     }
