@@ -1,69 +1,91 @@
-# CodeIgniter 4 Application Starter
+# Prayer Journal — Web
 
-## What is CodeIgniter?
+The Prayer Journal website, Studio admin panel and REST API. It is built with CodeIgniter 4.7 (PHP 8.2+) and Shield for authentication.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+It contains:
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+- a learning platform, starting with the **My Prayer Journal** course built from the book
+- a full KJV Bible reader with reading plans
+- a private prayer journal
+- a community prayer wall
+- a shop (physical and digital products)
+- the `/api/v1` API used by the Expo mobile app in `../mobile`
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+See [FEATURES.md](FEATURES.md) for the full feature list and [DEPLOYMENT.md](DEPLOYMENT.md) for going live.
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+## Quick start (local)
 
-## Installation & updates
+```bash
+composer install
+cp env .env             # set app.baseURL; SQLite is fine locally:
+                        #   database.default.DBDriver = SQLite3
+                        #   database.default.database = /absolute/path/to/writable/database.db
+php spark key:generate
+php spark migrate --all
+php spark bible:import
+php spark bible:plans
+php spark import:prayer-journal
+php spark db:seed ShopStarterSeeder
+php spark app:admin --email admin@example.test --password 'Admin-Pass-2026!' --username admin
+php spark serve
+```
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+Open http://localhost:8080 and sign in. The admin panel is at **/studio**.
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+## Layout
 
-## Setup
+```
+app/
+  Modules/
+    Core/     dashboard, account, search, prayer wall, notifications
+    Lms/      catalogue, course player, journal, quizzes, certificates
+    Bible/    reader, search, highlights/bookmarks/notes, reading plans
+    Shop/     storefront, cart, checkout (Stripe, PayFast), orders, wishlist
+    Studio/   admin panel for courses, curriculum, grading, products, orders and settings
+    Api/      /api/v1 for the mobile app (bearer tokens)
+  Libraries/  Scripture (reference parser/linker), HtmlSanitizer, Uploads
+  Helpers/    ui_helper (icons, money, avatars, settings, dates)
+  Commands/   import:prayer-journal, bible:import, bible:clean, bible:plans, app:admin
+  Database/   migrations, seeders, and Data/ (KJV, course JSON, product images)
+public/assets/
+  css/app.css      design system (tokens, light/dark themes, components)
+  js/app.js        progressive enhancement (no framework): AJAX forms, autosave,
+                   rich-text editor, drag-and-drop, modals, scripture popovers
+  img/icons.svg    line-icon sprite, used through icon('name')
+scripts/build_prayer_journal_course.py   regenerates the course JSON from the PDF
+```
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+## Commands
 
-## Important Change with index.php
+| Command | Purpose |
+| --- | --- |
+| `php spark import:prayer-journal [--draft] [--force] [--author=email]` | Build the "My Prayer Journal" course: 8 modules, 131 lessons, 6 quizzes, journal prompts |
+| `php spark bible:import` / `bible:clean` | Load the KJV; strip the source's editorial braces |
+| `php spark bible:plans` | Create the 5 built-in reading plans |
+| `php spark db:seed ShopStarterSeeder` | Store settings, shipping zones, VAT, and the print and eBook products |
+| `php spark app:admin --email … [--group=admin]` | Create or promote an admin without prompts |
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+Everything the commands create can be edited afterwards in Studio.
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+## Security notes
 
-**Please** read the user guide for a better explanation of how CI4 works!
+- CSRF protection is on for every form. Only `webhooks/*` (signature-verified) and `api/*` (bearer tokens) are exempt.
+- Rich text is cleaned by an allow-list sanitizer. The only embeds allowed are YouTube and Vimeo.
+- Uploads are type-checked. Digital products live outside `public/` and are served only to buyers.
+- Orders are visible only to their owner, the guest session that placed them, or admins. Gateway amounts are verified against the order.
+- Test payments are disabled in production unless an admin explicitly enables them.
 
-## Repository Management
+## Tests
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+```bash
+vendor/bin/phpunit
+```
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+There are 38 tests. Each one runs every migration on a fresh in-memory SQLite database. They cover:
 
-## Server Requirements
-
-PHP version 8.2 or higher is required, with the following extensions installed:
-
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
-
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - The end of life date for PHP 8.1 was December 31, 2025.
-> - If you are still using below PHP 8.2, you should upgrade immediately.
-> - The end of life date for PHP 8.2 will be December 31, 2026.
-
-Additionally, make sure that the following extensions are enabled in your PHP:
-
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+- **Security:** CSRF, role filters and ownership
+- **API:** auth, journal CRUD, enrolment and progress, the prayer wall, and that quiz answers never leak to the device
+- **LMS:** preview, sequential and drip locks; certificates; grading every question type
+- **Shop:** inclusive and exclusive VAT, shipping zones, free-shipping threshold, discount validation, stock reserve and restock
+- **Course import:** building the full course from the PDF content
+- **Libraries:** the scripture parser and the sanitizer
