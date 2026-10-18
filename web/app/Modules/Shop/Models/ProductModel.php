@@ -14,7 +14,7 @@ class ProductModel extends Model
     protected $allowedFields    = [
         'vendor_id', 'category_id', 'title', 'slug', 'description', 'status', 'short_description', 'product_type',
         'brand', 'tags', 'options', 'seo_title', 'seo_description', 'is_featured', 'track_inventory', 'allow_backorder',
-        'published_at',
+        'published_at', 'allow_download', 'flipbook',
     ];
     protected $useTimestamps = true;
 

@@ -9,6 +9,10 @@ $links    = [
     ['shop', 'Shop', 'bag'],
     ['prayer-requests', 'Prayer Wall', 'hands'],
 ];
+// Blog archives switched on for the menus in Studio (e.g. Prayerthon).
+foreach (\App\Modules\Blog\Models\BlogArchiveModel::menu() as $a) {
+    $links[] = ['blog/' . $a['slug'], $a['title'], 'map'];
+}
 ?>
 <?php if ($announcement = site_announcement()) : ?>
     <div class="announcement no-print"><?= esc($announcement) ?></div>

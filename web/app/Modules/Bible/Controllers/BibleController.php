@@ -17,6 +17,12 @@ class BibleController extends BaseController
 {
     public const COLORS = ['yellow', 'green', 'blue', 'pink', 'purple', 'orange'];
 
+    /**
+     * What readers see for each colour. "purple" is the stored key for saved
+     * highlights, but it now renders in the brand navy.
+     */
+    public const COLOR_LABELS = ['yellow' => 'Yellow', 'green' => 'Green', 'blue' => 'Blue', 'pink' => 'Pink', 'purple' => 'Navy', 'orange' => 'Orange'];
+
     public function index(): string
     {
         $books   = (new BibleBookModel())->all();

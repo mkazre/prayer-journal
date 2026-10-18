@@ -24,8 +24,8 @@ try {
     <title><?= esc($heading) ?> · <?= esc($name) ?></title>
     <link rel="icon" href="/assets/img/favicon-64.png">
     <style>
-        :root { color-scheme: light dark; --bg: #f7f5fb; --card: #fff; --text: #16121c; --muted: #6e6779; --brand: #4b1e82; --border: #e6e0ef; }
-        @media (prefers-color-scheme: dark) { :root { --bg: #110d17; --card: #1b1624; --text: #f4f1f8; --muted: #9e95ad; --brand: #a57ee0; --border: #2f2740; } }
+        :root { color-scheme: light dark; --bg: #f6f7fa; --card: #fff; --text: #12151c; --muted: #676c79; --brand: #232d47; --border: #e0e4ef; }
+        @media (prefers-color-scheme: dark) { :root { --bg: #0d1017; --card: #161a24; --text: #f1f3f8; --muted: #959cad; --brand: #94a3ca; --border: #272e40; } }
         * { box-sizing: border-box; }
         body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--bg); color: var(--text); font: 16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
         main { width: 100%; max-width: 520px; text-align: center; background: var(--card); border: 1px solid var(--border); border-radius: 22px; padding: 40px 28px; }

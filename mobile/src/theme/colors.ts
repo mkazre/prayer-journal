@@ -1,8 +1,8 @@
 // Brand palette — matches web/public/assets/css/app.css. Keep the two in sync.
 export const brand = {
-  purple: '#4B1E82',
-  purpleDark: '#2E1052',
-  purpleLight: '#7C4DBD',
+  navy: '#232D47',
+  navyDark: '#161C2E',
+  navyLight: '#4F5F8A',
   gold: '#C9A227',
   goldLight: '#F0D878',
 };
@@ -31,16 +31,16 @@ export type Palette = {
 };
 
 export const light: Palette = {
-  bg: '#F7F5FB',
+  bg: '#F6F7FA',
   surface: '#FFFFFF',
-  surface2: '#F1EDF8',
-  border: '#E6E0EF',
-  text: '#16121C',
-  text2: '#3D3548',
-  muted: '#6E6779',
-  brand: brand.purple,
-  brandSoft: '#EFE8F9',
-  brandInk: '#3A1468',
+  surface2: '#EFF1F6',
+  border: '#E0E4EF',
+  text: '#12151C',
+  text2: '#353A48',
+  muted: '#676C79',
+  brand: brand.navy,
+  brandSoft: '#ECEEF5',
+  brandInk: '#1B2338',
   accent: brand.gold,
   accentSoft: '#FAF3DC',
   accentInk: '#7A5B00',
@@ -49,21 +49,21 @@ export const light: Palette = {
   danger: '#C0392B',
   dangerSoft: '#FBE9E7',
   onBrand: '#FFFFFF',
-  overlay: 'rgba(22,18,28,0.45)',
-  highlight: { yellow: '#FFF1A8', green: '#CFF2D8', blue: '#D3E6FF', pink: '#FFD6E7', purple: '#E6D9FB' },
+  overlay: 'rgba(18,21,28,0.45)',
+  highlight: { yellow: '#FFF1A8', green: '#CFF2D8', blue: '#D3E6FF', pink: '#FFD6E7', purple: '#CDD3E3' },
 };
 
 export const dark: Palette = {
-  bg: '#110D17',
-  surface: '#1B1624',
-  surface2: '#241D30',
-  border: '#2F2740',
-  text: '#F4F1F8',
-  text2: '#D6CFE1',
-  muted: '#9E95AD',
-  brand: '#A57EE0',
-  brandSoft: '#2A1F3D',
-  brandInk: '#D9C7F7',
+  bg: '#0D1017',
+  surface: '#161A24',
+  surface2: '#1D2230',
+  border: '#272E40',
+  text: '#F1F3F8',
+  text2: '#CFD4E1',
+  muted: '#959CAD',
+  brand: '#6E7FAD',
+  brandSoft: '#1F283D',
+  brandInk: '#D2D9EC',
   accent: '#E0BC4A',
   accentSoft: '#33290F',
   accentInk: '#F0D878',
@@ -73,7 +73,7 @@ export const dark: Palette = {
   dangerSoft: '#341714',
   onBrand: '#FFFFFF',
   overlay: 'rgba(0,0,0,0.6)',
-  highlight: { yellow: '#5A4E12', green: '#1D4A2D', blue: '#1D3557', pink: '#55203A', purple: '#3B2A5E' },
+  highlight: { yellow: '#5A4E12', green: '#1D4A2D', blue: '#1D3557', pink: '#55203A', purple: '#3A4A73' },
 };
 
 export const radius = { sm: 8, md: 12, lg: 16, xl: 22, pill: 999 };

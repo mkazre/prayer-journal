@@ -11,7 +11,7 @@ $complete = ($enrollment['status'] ?? '') === 'completed';
     <div class="player-main">
         <?= view('Lms/study/_top', ['course' => $course, 'current' => null]) ?>
         <div class="player-content wide">
-            <section class="welcome-band" style="background:radial-gradient(600px 300px at 100% 0%, color-mix(in srgb, <?= esc($settings['accent_color'], 'attr') ?> 40%, transparent), transparent 60%), linear-gradient(135deg, #1a0d2e, <?= esc($settings['brand_color'], 'attr') ?>)">
+            <section class="welcome-band" style="background:radial-gradient(600px 300px at 100% 0%, color-mix(in srgb, <?= esc($settings['accent_color'], 'attr') ?> 40%, transparent), transparent 60%), linear-gradient(135deg, #0f1321, <?= esc($settings['brand_color'], 'attr') ?>)">
                 <div class="row between items-start gap-xl">
                     <div class="grow" style="max-width:620px">
                         <span class="eyebrow" style="color:var(--accent)"><?= icon('graduation') ?><?= $preview ? 'Instructor preview' : ($complete ? 'Completed' : 'Your course') ?></span>

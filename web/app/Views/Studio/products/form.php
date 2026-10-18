@@ -76,6 +76,11 @@ $vJson    = array_map(static fn ($x) => ['id' => (int) $x['id'], 'o' => [$x['opt
             <section class="card card-body stack">
                 <div class="field"><span class="label">Status</span><div class="segmented" style="width:100%"><label class="grow"><input type="radio" name="status" value="published" <?= ($p['status'] ?? '') === 'published' ? 'checked' : '' ?>><span style="justify-content:center">Active</span></label><label class="grow"><input type="radio" name="status" value="draft" <?= ($p['status'] ?? 'draft') === 'draft' ? 'checked' : '' ?>><span style="justify-content:center">Draft</span></label></div></div>
                 <div class="field"><span class="label">Product type</span><div class="segmented" style="width:100%"><label class="grow"><input type="radio" name="product_type" value="physical" <?= ! $digital ? 'checked' : '' ?>><span style="justify-content:center"><?= icon('package') ?>Physical</span></label><label class="grow"><input type="radio" name="product_type" value="digital" <?= $digital ? 'checked' : '' ?>><span style="justify-content:center"><?= icon('download') ?>Digital</span></label></div></div>
+                <div class="digi-only stack" style="gap:.6rem">
+                    <label class="switch"><input type="checkbox" name="flipbook" value="1" id="opt-flipbook" <?= ! empty($p['flipbook']) ? 'checked' : '' ?>><span class="track"></span>Read online as a flipbook</label>
+                    <label class="switch"><input type="checkbox" name="allow_download" value="1" id="opt-download" <?= (int) ($p['allow_download'] ?? 1) ? 'checked' : '' ?>><span class="track"></span>Allow PDF download</label>
+                    <p class="help mb-0">The flipbook opens the PDF on our site like a book, with copying, printing and saving blocked. Turn the download off to make it read-online only. Upload a PDF as the variant file.</p>
+                </div>
                 <label class="switch phys-only"><input type="checkbox" name="track_inventory" value="1" <?= (int) ($p['track_inventory'] ?? 1) ? 'checked' : '' ?>><span class="track"></span>Track stock</label>
                 <label class="switch phys-only"><input type="checkbox" name="allow_backorder" value="1" <?= ! empty($p['allow_backorder']) ? 'checked' : '' ?>><span class="track"></span>Sell when out of stock</label>
                 <?php if (is_staff('superadmin', 'admin', 'manager')) : ?><label class="switch"><input type="checkbox" name="is_featured" value="1" <?= ! empty($p['is_featured']) ? 'checked' : '' ?>><span class="track"></span>Featured</label><?php endif ?>
@@ -112,7 +117,13 @@ $vJson    = array_map(static fn ($x) => ['id' => (int) $x['id'], 'o' => [$x['opt
         document.querySelectorAll('#variants-table .phys').forEach(function (el) { el.hidden = dig; });
         document.querySelectorAll('#variants-table .digi').forEach(function (el) { el.hidden = !dig; });
         document.querySelectorAll('.phys-only').forEach(function (el) { el.hidden = dig; });
+        document.querySelectorAll('.digi-only').forEach(function (el) { el.hidden = !dig; });
     }
+    // Keep at least one delivery method: with the flipbook off, the download stays on.
+    var fb = document.getElementById('opt-flipbook'), dl = document.getElementById('opt-download');
+    function syncDelivery() { if (!fb.checked) { dl.checked = true; } dl.disabled = !fb.checked; }
+    fb.addEventListener('change', syncDelivery); syncDelivery();
+    form.addEventListener('submit', function () { dl.disabled = false; });
     function row(v, i) {
         var label = v.o.filter(Boolean).join(' / ') || 'Default';
         var tr = document.createElement('tr');

@@ -49,9 +49,13 @@ $hasPhysical = array_filter($items, static fn ($i) => ($i['product_type'] ?? 'ph
                             <?php if ($item['slug']) : ?><a class="fw-600" href="<?= site_url('shop/' . $item['slug']) ?>" style="color:inherit"><?= esc($item['title_snapshot']) ?></a><?php else : ?><strong><?= esc($item['title_snapshot']) ?></strong><?php endif ?>
                             <div class="text-sm text-muted">Qty <?= (int) $item['quantity'] ?> · <?= money((int) $item['unit_price_cents'], $order['currency']) ?> each</div>
                             <?php if (($item['product_type'] ?? '') === 'digital') : ?>
+                                <?php $canFlip = (int) ($item['flipbook'] ?? 0) && strtolower(pathinfo((string) $item['digital_file_path'], PATHINFO_EXTENSION)) === 'pdf'; $canDl = (int) ($item['allow_download'] ?? 1) === 1; ?>
                                 <?php if ($paid && $item['digital_file_path'] && auth()->loggedIn()) : ?>
-                                    <a class="btn btn-sm btn-soft mt-1" href="<?= site_url('orders/' . $order['id'] . '/download/' . $item['id']) ?>"><?= icon('download') ?>Download</a>
-                                <?php else : ?><span class="badge badge-info mt-1"><?= icon('download') ?>Download available after payment</span><?php endif ?>
+                                    <div class="row gap-sm mt-1">
+                                        <?php if ($canFlip) : ?><a class="btn btn-sm btn-primary" href="<?= site_url('orders/' . $order['id'] . '/read/' . $item['id']) ?>"><?= icon('book-open') ?>Read online</a><?php endif ?>
+                                        <?php if ($canDl || ! $canFlip) : ?><a class="btn btn-sm btn-soft" href="<?= site_url('orders/' . $order['id'] . '/download/' . $item['id']) ?>"><?= icon('download') ?>Download</a><?php endif ?>
+                                    </div>
+                                <?php else : ?><span class="badge badge-info mt-1"><?= icon($canFlip ? 'book-open' : 'download') ?><?= $canFlip && ! $canDl ? 'Read online after payment' : 'Download available after payment' ?></span><?php endif ?>
                             <?php endif ?>
                         </div>
                         <span class="price"><?= money((int) $item['unit_price_cents'] * (int) $item['quantity'], $order['currency']) ?></span>

@@ -64,7 +64,7 @@ foreach (Curriculum::flatten($sections) as $it) { if ($it['kind'] === 'lesson' &
                         <details <?= $i === 0 ? 'open' : '' ?>>
                             <summary>
                                 <span class="qnum"><?= $i + 1 ?></span>
-                                <div class="grow"><div><?= esc($s['title']) ?></div><div class="text-xs text-muted fw-500"><?= count($s['items']) ?> items · <?= Curriculum::duration($mins) ?></div></div>
+                                <div class="grow"><div><?= esc($s['title']) ?></div><div class="text-xs text-muted fw-500"><?= Curriculum::itemSummary($s['items']) ?> · <?= Curriculum::duration($mins) ?></div></div>
                                 <?php if ($ownedSections !== null && in_array((int) $s['id'], $ownedSections, true)) : ?>
                                     <span class="badge badge-success"><?= icon('check') ?>Yours</span>
                                 <?php elseif ($sellsModules && $s['price_cents'] > 0) : ?>

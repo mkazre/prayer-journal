@@ -20,6 +20,23 @@ final class LmsTest extends AppTestCase
         return Curriculum::flatten(Curriculum::annotate(Curriculum::load((int) $course['id']), $course, $enrollment, $userId));
     }
 
+    public function testJournalEntriesLinkScriptureReferences(): void
+    {
+        $user = $this->makeUser();
+        db_connect()->table('journal_entries')->insert([
+            'user_id' => $user->id, 'kind' => 'prayer', 'title' => 'Learn to listen',
+            'body'    => "Psalm 23:3\n<b>Zechariah 4:6</b>", 'entry_date' => date('Y-m-d'), 'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $result = $this->actingAs($user)->get('journal');
+        $result->assertOK();
+        $result->assertSee('href="' . site_url('bible/psalms/23') . '#v3"', null);
+        $result->assertSee('class="bible-ref"', null);
+        // The entry text stays escaped; only the references become links.
+        $result->assertSee('&lt;b&gt;', null);
+        $result->assertDontSee('<b>Zechariah', null);
+    }
+
     public function testGuestsOnlySeePreviewLessonsUnlocked(): void
     {
         ['course' => $course, 'lessons' => $lessons] = $this->makeCourse(2);

@@ -13,7 +13,7 @@ export default function AuthLayout({ title, subtitle, children }: { title: strin
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-        <LinearGradient colors={[brand.purpleDark, brand.purple]} style={[styles.hero, { paddingTop: insets.top + 36 }]}>
+        <LinearGradient colors={[brand.navyDark, brand.navy]} style={[styles.hero, { paddingTop: insets.top + 36 }]}>
           <Logo size={72} />
           <Text style={styles.brand}>Prayer Journal</Text>
           <Text style={styles.tag}>Pray. Reflect. Grow.</Text>

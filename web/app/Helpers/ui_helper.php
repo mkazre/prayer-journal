@@ -313,8 +313,8 @@ if (! function_exists('cover_gradient')) {
     function cover_gradient(string $seed): string
     {
         $palettes = [
-            ['#2e1052', '#6a35b0'], ['#1a2a4f', '#4b1e82'], ['#3a1240', '#9a3b6b'], ['#14352f', '#2f7a63'],
-            ['#40210b', '#a8741a'], ['#1f1b4d', '#5b4bc4'], ['#2b0f3a', '#c9a227'], ['#0f2a3f', '#2f6f9a'],
+            ['#161c2e', '#3a4a73'], ['#1a2a4f', '#232d47'], ['#1c2436', '#505f85'], ['#14352f', '#2f7a63'],
+            ['#40210b', '#a8741a'], ['#1c2235', '#6679a9'], ['#191f30', '#c9a227'], ['#0f2a3f', '#2f6f9a'],
         ];
         $p = $palettes[abs(crc32($seed)) % count($palettes)];
 
@@ -329,10 +329,10 @@ if (! function_exists('course_cover_style')) {
     function course_cover_style(array $course): string
     {
         $settings = json_decode((string) ($course['settings'] ?? ''), true) ?: [];
-        $brand    = preg_match('/^#[0-9a-f]{6}$/i', (string) ($settings['brand_color'] ?? '')) ? $settings['brand_color'] : '#4b1e82';
+        $brand    = preg_match('/^#[0-9a-f]{6}$/i', (string) ($settings['brand_color'] ?? '')) ? $settings['brand_color'] : '#232d47';
         $accent   = preg_match('/^#[0-9a-f]{6}$/i', (string) ($settings['accent_color'] ?? '')) ? $settings['accent_color'] : '#c9a227';
 
-        return '--c1:#1a0d2e;--c2:' . $brand . ';--c3:' . $accent;
+        return '--c1:#0f1321;--c2:' . $brand . ';--c3:' . $accent;
     }
 }
 

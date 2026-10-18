@@ -21,7 +21,7 @@ class AppApiController extends BaseApiController
             'name'        => site_name(),
             'tagline'     => (string) site_setting('tagline', 'Pray. Reflect. Grow.'),
             'logo_url'    => logo_url(),
-            'brand_color' => (string) (site_setting('brand_color') ?: '#4b1e82'),
+            'brand_color' => (string) (site_setting('brand_color') ?: '#232d47'),
             'accent_color' => (string) (site_setting('accent_color') ?: '#c9a227'),
             'currency'    => store_currency(),
             'announcement' => (string) site_setting('announcement', ''),
@@ -29,6 +29,8 @@ class AppApiController extends BaseApiController
             'verse_of_the_day' => $this->verse(),
             'prayer_categories' => PrayerRequestModel::CATEGORIES,
             'journal_kinds' => array_map(static fn ($k) => $k[0], JournalEntryModel::KINDS),
+            // Blog archives switched on for the site menus (e.g. Prayerthon).
+            'blog_menu'   => array_map(static fn ($a) => ['slug' => $a['slug'], 'title' => $a['title']], \App\Modules\Blog\Models\BlogArchiveModel::menu()),
         ]);
     }
 

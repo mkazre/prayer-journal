@@ -13,7 +13,9 @@ export default function ProfileScreen({ navigation }: any) {
   const web = config?.web_url ?? '';
 
   const rows: { icon: IconName; label: string; onPress: () => void }[] = [
+    ...(config?.blog_menu ?? []).map((a) => ({ icon: 'map' as IconName, label: a.title, onPress: () => navigation.navigate('BlogArchive', { slug: a.slug, title: a.title }) })),
     { icon: 'users', label: 'Prayer wall', onPress: () => navigation.navigate('PrayerWall') },
+    { icon: 'book', label: 'My library', onPress: () => navigation.navigate('Library') },
     { icon: 'shopping-cart', label: 'Cart', onPress: () => navigation.navigate('Cart') },
     { icon: 'package', label: 'My orders', onPress: () => WebBrowser.openBrowserAsync(`${web}my-orders`) },
     { icon: 'award', label: 'My certificates', onPress: () => WebBrowser.openBrowserAsync(`${web}my-certificates`) },

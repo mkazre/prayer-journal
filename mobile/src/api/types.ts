@@ -12,6 +12,40 @@ export type AppConfig = {
   verse_of_the_day: Verse | null;
   prayer_categories: Record<string, string>;
   journal_kinds: Record<string, string>;
+  /** Blog archives the site shows in its menus, e.g. Prayerthon. */
+  blog_menu?: { slug: string; title: string }[];
+};
+
+export type BlogArchive = { slug: string; title: string; description: string | null; cover_url: string | null; access: 'members' | 'customers' };
+
+export type BlogPostSummary = { slug: string; title: string; excerpt: string | null; image_url: string | null; published_at: string; resource_count: number };
+
+export type BlogResource = { id: number; title: string; kind: 'pdf' | 'image' | 'video' | 'audio' | 'file'; size_bytes: number; url: string | null };
+
+export type BlogPost = {
+  archive: { slug: string; title: string };
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  image_url: string | null;
+  published_at: string;
+  access: 'members' | 'customers';
+  can_read: boolean;
+  body: string | null;
+  web_url: string;
+  resources: BlogResource[];
+};
+
+export type LibraryItem = {
+  order_id: number;
+  item_id: number;
+  order_number: string;
+  title: string;
+  image_url: string | null;
+  purchased_at: string;
+  product_slug: string | null;
+  read_url: string | null;
+  download_url: string | null;
 };
 
 export type MyCourse = {

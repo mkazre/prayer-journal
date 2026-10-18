@@ -81,9 +81,10 @@ $tracked = (int) $p['track_inventory'] && ! $digital;
             <?php if (auth()->loggedIn()) : ?><form id="wish-form" method="post" action="<?= site_url('wishlist/toggle/' . $p['id']) ?>" data-ajax data-ajax-reload><?= csrf_field() ?></form><?php endif ?>
 
             <div class="trust-row">
-                <div><?= icon($digital ? 'download' : 'truck') ?><?= $digital ? 'Instant download after payment' : esc(site_setting('shipping_promise', 'Tracked delivery')) ?></div>
+                <?php $flipOnly = $digital && (int) ($p['flipbook'] ?? 0) && ! (int) ($p['allow_download'] ?? 1); $flipAlso = $digital && (int) ($p['flipbook'] ?? 0) && ! $flipOnly; ?>
+                <div><?= icon($digital ? ($flipOnly ? 'book-open' : 'download') : 'truck') ?><?= $digital ? ($flipOnly ? 'Read online instantly after payment' : ($flipAlso ? 'Read online or download after payment' : 'Instant download after payment')) : esc(site_setting('shipping_promise', 'Tracked delivery')) ?></div>
                 <div><?= icon('shield-check') ?>Secure checkout</div>
-                <div><?= icon('refresh') ?><?= esc(site_setting('returns_promise', $digital ? 'Re-download any time' : '30-day returns')) ?></div>
+                <div><?= icon('refresh') ?><?= esc(site_setting('returns_promise', $digital ? ($flipOnly ? 'Read any time from your orders' : 'Re-download any time') : '30-day returns')) ?></div>
             </div>
             <div class="row gap-sm mt-2">
                 <button class="btn btn-sm btn-ghost" type="button" data-share="<?= esc($p['title'], 'attr') ?>" data-share-title="<?= esc($p['title'], 'attr') ?>"><?= icon('share') ?>Share</button>
@@ -101,7 +102,7 @@ $tracked = (int) $p['track_inventory'] && ! $digital;
         <div class="tab-panel is-active" id="tab-desc"><div class="prose" style="max-width:760px;font-size:1.02rem"><?= $p['description'] ? scripture_links(clean_html($p['description'])) : '<p class="text-muted">No description yet.</p>' ?></div></div>
         <div class="tab-panel" id="tab-details">
             <div class="table-wrap" style="max-width:640px"><table class="table">
-                <tr><th style="width:40%">Format</th><td><?= $digital ? 'Digital download' : 'Physical product' ?></td></tr>
+                <tr><th style="width:40%">Format</th><td><?= $digital ? ($flipOnly ? 'Read online (flipbook)' : ($flipAlso ? 'Read online (flipbook) + PDF download' : 'Digital download')) : 'Physical product' ?></td></tr>
                 <?php if ($p['brand']) : ?><tr><th>Brand / author</th><td><?= esc($p['brand']) ?></td></tr><?php endif ?>
                 <?php if (! $digital && $first && $first['weight_grams']) : ?><tr><th>Weight</th><td><?= (int) $first['weight_grams'] ?> g</td></tr><?php endif ?>
                 <?php if ($p['tags']) : ?><tr><th>Tags</th><td><div class="chips"><?php foreach (array_filter(array_map('trim', explode(',', $p['tags']))) as $t) : ?><a class="chip" style="padding:.15rem .6rem;font-size:.78rem" href="<?= site_url('shop?q=' . urlencode($t)) ?>"><?= esc($t) ?></a><?php endforeach ?></div></td></tr><?php endif ?>

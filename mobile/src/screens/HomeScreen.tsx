@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useApi } from '../hooks/useApi';
 import { Dashboard } from '../api/types';
@@ -16,6 +17,8 @@ function greeting(): string {
 export default function HomeScreen({ navigation }: any) {
   const { c } = useTheme();
   const { data, error, loading, refreshing, refresh } = useApi<Dashboard>('/dashboard');
+  const { config } = useAuth();
+  const prayerthon = config?.blog_menu?.find((a) => a.slug === 'prayerthon') ?? config?.blog_menu?.[0];
 
   const right = (
     <>
@@ -40,7 +43,7 @@ export default function HomeScreen({ navigation }: any) {
     <Screen title="Prayer Journal" subtitle={`${greeting()}, ${data.user.name}`} right={right} refreshing={refreshing} onRefresh={refresh}>
       {verse ? (
         <Pressable onPress={() => navigation.navigate('BibleChapter', { book: verse.book, chapter: verse.chapter, verse: verse.verse })}>
-          <LinearGradient colors={[brand.purpleDark, brand.purple]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.verse}>
+          <LinearGradient colors={[brand.navyDark, brand.navy]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.verse}>
             <View style={styles.verseTop}>
               <Text style={styles.verseEyebrow}>VERSE OF THE DAY</Text>
               <Pressable hitSlop={10} onPress={() => Share.share({ message: `“${verse.text}” — ${verse.reference}` })} accessibilityLabel="Share verse">
@@ -92,6 +95,21 @@ export default function HomeScreen({ navigation }: any) {
           </Pressable>
         ))}
       </View>
+
+      {prayerthon ? (
+        <Pressable onPress={() => navigation.navigate('BlogArchive', { slug: prayerthon.slug, title: prayerthon.title })} accessibilityRole="button">
+          <LinearGradient colors={['#0F1321', brand.navy, brand.navyLight]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.verse}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={styles.journeyIcon}><Icon name="map" size={22} color={brand.gold} /></View>
+              <Text style={[styles.verseText, { fontSize: 22, fontWeight: '800', flex: 1 }]}>{prayerthon.title}</Text>
+              <Icon name="chevron-right" size={20} color="rgba(255,255,255,0.8)" />
+            </View>
+            <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, lineHeight: 21 }}>
+              Embark on a guided prayer journey, with each kilometre inspiring focused prayer, reflection and a deeper connection with GOD.
+            </Text>
+          </LinearGradient>
+        </Pressable>
+      ) : null}
 
       {data.plans.length ? (
         <>
@@ -149,4 +167,5 @@ const styles = StyleSheet.create({
   play: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   quick: { flexDirection: 'row', gap: 10 },
   quickItem: { flex: 1, alignItems: 'center', borderWidth: 1, borderRadius: 16, paddingVertical: 14 },
+  journeyIcon: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(201,162,39,0.18)' },
 });

@@ -279,6 +279,23 @@ class Curriculum
         $h = intdiv($minutes, 60);
         $m = $minutes % 60;
 
-        return ($h ? $h . 'h ' : '') . ($m ? $m . 'm' : '');
+        return trim(($h ? $h . ' hour' . ($h === 1 ? '' : 's') . ' ' : '') . ($m ? $m . ' minute' . ($m === 1 ? '' : 's') : ''));
+    }
+
+    /**
+     * "21 lessons · 1 quiz" for a module's items.
+     */
+    public static function itemSummary(array $items): string
+    {
+        $names = ['lesson' => ['lesson', 'lessons'], 'quiz' => ['quiz', 'quizzes'], 'assignment' => ['assignment', 'assignments']];
+        $count = array_count_values(array_column($items, 'kind'));
+        $parts = [];
+        foreach ($names as $kind => [$one, $many]) {
+            if (! empty($count[$kind])) {
+                $parts[] = $count[$kind] . ' ' . ($count[$kind] === 1 ? $one : $many);
+            }
+        }
+
+        return implode(' · ', $parts) ?: 'Coming soon';
     }
 }

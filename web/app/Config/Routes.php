@@ -109,7 +109,10 @@ $routes->post('webhooks/stripe', $shop . 'CheckoutController::webhook');
 $routes->post('webhooks/payfast', $shop . 'CheckoutController::payfastNotify');
 $routes->get('orders/(:num)', $shop . 'OrderController::show/$1');
 $routes->get('orders/(:num)/confirmation', $shop . 'OrderController::show/$1');
-$routes->get('orders/(:num)/download/(:num)', $shop . 'OrderController::download/$1/$2', ['filter' => 'session']);
+$routes->get('orders/(:num)/download/(:num)', $shop . 'OrderController::download/$1/$2'); // session or signed link
+// Flipbook reader: web session or a signed link from the mobile app (checked in the controller).
+$routes->get('orders/(:num)/read/(:num)', $shop . 'OrderController::read/$1/$2');
+$routes->get('orders/(:num)/read/(:num)/file', $shop . 'OrderController::readerFile/$1/$2');
 $routes->get('my-orders', $shop . 'OrderController::myOrders', ['filter' => 'session']);
 $routes->get('pricing', $shop . 'PricingController::index');
 $routes->get('wishlist', $shop . 'WishlistController::index', ['filter' => 'session']);
@@ -124,6 +127,14 @@ $routes->post('prayer-requests/create', $core . 'PrayerRequestController::create
 $routes->post('prayer-requests/(:num)/pray', $core . 'PrayerRequestController::pray/$1', ['filter' => 'session']);
 $routes->post('prayer-requests/(:num)/answered', $core . 'PrayerRequestController::answered/$1', ['filter' => 'session']);
 $routes->post('prayer-requests/(:num)/delete', $core . 'PrayerRequestController::delete/$1', ['filter' => 'session']);
+
+// Blog: archives (series such as Prayerthon), posts and their resources
+$blog = '\App\Modules\Blog\Controllers\\';
+$routes->get('blog', $blog . 'BlogController::index');
+// Session or signed link (mobile app); checked in the controller.
+$routes->get('blog/resources/(:num)', $blog . 'BlogController::resource/$1');
+$routes->get('blog/(:segment)', $blog . 'BlogController::archive/$1');
+$routes->get('blog/(:segment)/(:segment)', $blog . 'BlogController::post/$1/$2');
 
 // ---------------------------------------------------------------------
 // Studio: one back office for instructors, vendors and admins.
@@ -208,6 +219,16 @@ $routes->group('studio', ['filter' => ['session', 'group:superadmin,admin,manage
     $routes->post('memberships/(:num)/cancel', $std . 'PlanController::cancelMember/$1');
     $routes->get('reports', $std . 'ReportController::index');
 
+    // Blog
+    $routes->get('blog', $std . 'BlogController::index');
+    $routes->match(['GET', 'POST'], 'blog/archives/new', $std . 'BlogController::createArchive');
+    $routes->match(['GET', 'POST'], 'blog/archives/(:num)', $std . 'BlogController::editArchive/$1');
+    $routes->post('blog/archives/(:num)/delete', $std . 'BlogController::deleteArchive/$1');
+    $routes->match(['GET', 'POST'], 'blog/archives/(:num)/posts/new', $std . 'BlogController::createPost/$1');
+    $routes->match(['GET', 'POST'], 'blog/posts/(:num)', $std . 'BlogController::editPost/$1');
+    $routes->post('blog/posts/(:num)/delete', $std . 'BlogController::deletePost/$1');
+    $routes->post('blog/resources/(:num)/delete', $std . 'BlogController::deleteResource/$1');
+
     // Community & site
     $routes->get('prayer', $std . 'SiteController::prayer');
     $routes->post('prayer/(:num)/delete', $std . 'SiteController::deletePrayer/$1');
@@ -257,6 +278,9 @@ $routes->group('api/v1', static function ($routes) use ($api) {
     $routes->get('shop/products/(:segment)', $api . 'ShopApiController::product/$1');
     $routes->get('shop/plans', $api . 'ShopApiController::plans');
     $routes->get('prayer-requests', $api . 'AppApiController::prayerRequests');
+    $routes->get('blog', $api . 'ContentApiController::archives');
+    $routes->get('blog/(:segment)', $api . 'ContentApiController::archive/$1');
+    $routes->get('blog/(:segment)/(:segment)', $api . 'ContentApiController::post/$1/$2');
 });
 
 $routes->group('api/v1', ['filter' => 'tokens'], static function ($routes) use ($api) {
@@ -290,6 +314,7 @@ $routes->group('api/v1', ['filter' => 'tokens'], static function ($routes) use (
     $routes->post('prayer-requests', $api . 'AppApiController::createPrayerRequest');
     $routes->post('prayer-requests/(:num)/pray', $api . 'AppApiController::pray/$1');
 
+    $routes->get('library', $api . 'ContentApiController::library');
     $routes->get('cart', $api . 'ShopApiController::cart');
     $routes->post('cart/add/(:num)', $api . 'ShopApiController::addToCart/$1');
     $routes->post('cart/items/(:num)', $api . 'ShopApiController::updateCartItem/$1');

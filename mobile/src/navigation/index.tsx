@@ -29,6 +29,9 @@ import ShopScreen from '../screens/ShopScreen';
 import ProductScreen from '../screens/ProductScreen';
 import CartScreen from '../screens/CartScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import BlogArchiveScreen from '../screens/BlogArchiveScreen';
+import BlogPostScreen from '../screens/BlogPostScreen';
+import LibraryScreen from '../screens/LibraryScreen';
 
 const Root = createNativeStackNavigator();
 const Auth = createNativeStackNavigator();
@@ -74,6 +77,9 @@ function SignedIn() {
       <Root.Screen name="Product" component={ProductScreen} />
       <Root.Screen name="Cart" component={CartScreen} />
       <Root.Screen name="Profile" component={ProfileScreen} />
+      <Root.Screen name="BlogArchive" component={BlogArchiveScreen} />
+      <Root.Screen name="BlogPost" component={BlogPostScreen} />
+      <Root.Screen name="Library" component={LibraryScreen} />
     </Root.Navigator>
   );
 }
