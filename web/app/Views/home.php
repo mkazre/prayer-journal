@@ -57,8 +57,8 @@
         <div class="section-head">
             <div>
                 <span class="eyebrow">Everything in one place</span>
-                <h2>Built for your whole walk of faith</h2>
-                <p>Study, pray, read and grow — with tools that remember where you are.</p>
+                <h2>Designed for every step of your walk with GOD</h2>
+                <p>Read, study, pray, reflect and grow in Faith - all in one place</p>
             </div>
         </div>
         <div class="grid grid-3">
