@@ -963,7 +963,7 @@ body.protect img, body.protect video, body.protect audio { -webkit-user-drag: no
 .protect-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 90; background: var(--text); color: var(--bg); padding: .6rem 1rem; border-radius: 999px; font-size: .88rem; box-shadow: var(--shadow-lg, 0 10px 30px rgba(0,0,0,.2)); }
 @media print {
     body.protect > *:not(.protect-print) { display: none !important; }
-    body.protect::after { content: "This course content is protected and cannot be printed."; display: block; padding: 3rem; font: 600 18px/1.5 sans-serif; text-align: center; }
+    body.protect::after { content: "This content is protected and cannot be printed."; display: block; padding: 3rem; font: 600 18px/1.5 sans-serif; text-align: center; }
 }
 
 /* ---------- Blog ---------- */

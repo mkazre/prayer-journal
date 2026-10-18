@@ -86,6 +86,8 @@ php_errors.log
 # Composer
 #-------------------------
 vendor/
+# Front-end libraries we ship ourselves (PDF.js, StPageFlip) are not Composer's.
+!/public/assets/vendor/
 
 #-------------------------
 # Local SQLite dev database

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Linking, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { type as t } from '../theme/colors';
 
@@ -87,14 +88,29 @@ export function parseHtml(html: string): Block[] {
     .filter((b) => b.tag === 'hr' || b.spans.some((s) => s.text.trim() !== ''));
 }
 
+/**
+ * "…/bible/john/3#v16" (the website's scripture links) => reader params.
+ */
+export function bibleTarget(href: string): { book: string; chapter: number; verse?: number } | null {
+  const m = /\/bible\/([a-z0-9-]+)\/(\d+)(?:#v(\d+))?/i.exec(href);
+  return m ? { book: m[1], chapter: Number(m[2]), verse: m[3] ? Number(m[3]) : undefined } : null;
+}
+
 export default function Html({ html, serif = true }: { html: string; serif?: boolean }) {
   const { c, readScale } = useTheme();
+  const nav = useNavigation<any>();
   const base = { color: c.text, fontSize: 16.5 * readScale, lineHeight: 27 * readScale, fontFamily: serif ? t.serif : undefined };
+  // Scripture references open in the app's Bible reader; other links in the browser.
+  const open = (href: string) => {
+    const bible = bibleTarget(href);
+    if (bible) nav.navigate('BibleChapter', bible);
+    else Linking.openURL(href);
+  };
 
   const renderSpans = (spans: Span[]) => spans.map((s, i) => (
     <Text
       key={i}
-      onPress={s.href ? () => Linking.openURL(s.href!) : undefined}
+      onPress={s.href ? () => open(s.href!) : undefined}
       style={[s.bold && { fontWeight: '700' }, s.italic && { fontStyle: 'italic' }, s.href ? { color: c.brand, textDecorationLine: 'underline' } : null]}
     >
       {s.text}

@@ -28,7 +28,7 @@ $url       = static fn (array $r, bool $dl = false) => site_url('blog/resources/
                             <div class="row row-nowrap items-start gap-lg">
                                 <span class="feature-icon <?= $r['kind'] === 'pdf' || $r['kind'] === 'audio' ? 'gold' : '' ?>" style="margin:0"><?= icon($kindIcon[$r['kind']] ?? 'file') ?></span>
                                 <div class="grow">
-                                    <div class="row between"><strong><?= esc($r['title']) ?></strong><span class="text-xs text-muted"><?= $kindLabel[$r['kind']] ?? 'File' ?> · <?= number_format($r['size_bytes'] / 1048576, 1) ?> MB</span></div>
+                                    <div class="row between"><strong><?= esc($r['title']) ?></strong><span class="text-xs text-muted"><?= $kindLabel[$r['kind']] ?? 'File' ?> · <?= $r['size_bytes'] >= 1048576 ? number_format($r['size_bytes'] / 1048576, 1) . ' MB' : max(1, (int) round($r['size_bytes'] / 1024)) . ' KB' ?></span></div>
                                     <?php if ($r['kind'] === 'video') : ?>
                                         <video class="mt-1" controls preload="metadata" playsinline style="width:100%;border-radius:var(--radius-sm)" src="<?= $url($r) ?>"></video>
                                     <?php elseif ($r['kind'] === 'audio') : ?>

@@ -228,7 +228,10 @@ class ProductController extends StudioController
             'seo_description'   => trim((string) ($p['seo_description'] ?? '')) ?: null,
             'track_inventory'   => $type === 'digital' ? 0 : (! empty($p['track_inventory']) ? 1 : 0),
             'allow_backorder'   => ! empty($p['allow_backorder']) ? 1 : 0,
+            'flipbook'          => $type === 'digital' && ! empty($p['flipbook']) ? 1 : 0,
         ];
+        // A digital product needs at least one way to deliver it.
+        $data['allow_download'] = $type !== 'digital' || ! $data['flipbook'] || ! empty($p['allow_download']) ? 1 : 0;
         if ($this->isManager()) {
             $data['is_featured'] = ! empty($p['is_featured']) ? 1 : 0;
         }

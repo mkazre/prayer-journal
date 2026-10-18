@@ -135,7 +135,7 @@ class OrderModel extends Model
     public function items(int $orderId): array
     {
         return $this->db->table('order_items oi')
-            ->select('oi.*, p.slug, p.product_type, v.digital_file_path')
+            ->select('oi.*, p.slug, p.product_type, p.allow_download, p.flipbook, v.digital_file_path')
             ->select('(SELECT i.path FROM product_images i WHERE i.product_id = oi.product_id ORDER BY i.position, i.id LIMIT 1) AS image', false)
             ->join('products p', 'p.id = oi.product_id', 'left')
             ->join('product_variants v', 'v.id = oi.variant_id', 'left')

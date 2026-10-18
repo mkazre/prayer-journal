@@ -469,7 +469,7 @@
     $$('[data-autofocus-end]').forEach(function (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); });
 })();
 
-/* ---------- Copy protection (enabled per course) ---------- */
+/* ---------- Copy protection (courses and the flipbook reader) ---------- */
 (function () {
     var body = document.body;
     if (!body || !body.classList.contains('protect')) { return; }
@@ -479,7 +479,7 @@
         if (hint) { return; }
         hint = document.createElement('div');
         hint.className = 'protect-toast';
-        hint.textContent = 'This course content is protected.';
+        hint.textContent = body.getAttribute('data-protect-note') || 'This content is protected.';
         body.appendChild(hint);
         setTimeout(function () { hint.remove(); hint = null; }, 1800);
     };

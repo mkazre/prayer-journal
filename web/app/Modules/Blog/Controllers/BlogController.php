@@ -67,14 +67,19 @@ class BlogController extends BaseController
      */
     public function resource(int $id)
     {
-        $res = db_connect()->table('blog_resources')->where('id', $id)->get()->getRowArray();
-        $post = $res ? (new BlogPostModel())->find($res['post_id']) : null;
+        // Website session, or a signed link handed to the mobile app.
+        $userId = auth()->loggedIn() ? $this->userId() : \App\Libraries\SignedLink::verify('blog-resource:' . $id, (array) $this->request->getGet());
+        if (! $userId) {
+            return redirect()->to(site_url('login'));
+        }
+        $res     = db_connect()->table('blog_resources')->where('id', $id)->get()->getRowArray();
+        $post    = $res ? (new BlogPostModel())->find($res['post_id']) : null;
         $archive = $post ? (new BlogArchiveModel())->find($post['archive_id']) : null;
-        $staff = is_staff();
+        $staff   = auth()->loggedIn() ? is_staff() : BlogAccess::isStaffUser($userId);
         if (! $res || ! $post || ! $archive || (! $staff && ($post['status'] !== 'published' || $archive['status'] !== 'published'))) {
             $this->notFound();
         }
-        if (! BlogAccess::canRead($post, $archive, $this->userId())) {
+        if (! BlogAccess::canRead($post, $archive, $userId, $staff)) {
             return redirect()->to(site_url('blog/' . $archive['slug'] . '/' . $post['slug']))->with('error', 'That resource is for ' . (BlogAccess::level($post, $archive) === 'customers' ? 'customers' : 'signed-in members') . '.');
         }
         $path = Uploads::path($res['file_path']);

@@ -35,7 +35,7 @@ $archiveLevel = \App\Modules\Blog\Services\BlogAccess::LEVELS[$archive['access']
                                 <tr>
                                     <td><input class="input input-sm" name="resource_title[<?= $r['id'] ?>]" value="<?= esc($r['title'], 'attr') ?>" maxlength="200"></td>
                                     <td class="text-sm nowrap"><?= icon($kindIcon[$r['kind']] ?? 'file') ?> <?= esc(strtoupper(pathinfo($r['file_path'], PATHINFO_EXTENSION))) ?></td>
-                                    <td class="num text-sm nowrap"><?= number_format($r['size_bytes'] / 1048576, 1) ?> MB</td>
+                                    <td class="num text-sm nowrap"><?= $r['size_bytes'] >= 1048576 ? number_format($r['size_bytes'] / 1048576, 1) . ' MB' : max(1, (int) round($r['size_bytes'] / 1024)) . ' KB' ?></td>
                                     <td><input class="input input-sm" type="number" name="resource_position[<?= $r['id'] ?>]" value="<?= (int) $r['position'] ?>"></td>
                                     <td class="text-right"><button class="btn btn-ghost btn-icon btn-sm" type="button" data-del-resource="<?= site_url('studio/blog/resources/' . $r['id'] . '/delete') ?>" aria-label="Remove"><?= icon('trash') ?></button></td>
                                 </tr>

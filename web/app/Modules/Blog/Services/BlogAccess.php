@@ -28,16 +28,26 @@ class BlogAccess
         return isset(self::LEVELS[$level]) ? $level : (isset(self::LEVELS[$archive['access']]) ? $archive['access'] : 'members');
     }
 
-    public static function canRead(array $post, array $archive, ?int $userId): bool
+    /**
+     * @param bool|null $staff whether the reader is staff; null = ask the web session
+     */
+    public static function canRead(array $post, array $archive, ?int $userId, ?bool $staff = null): bool
     {
         if (! $userId) {
             return false;
         }
-        if (is_staff()) {
+        if ($staff ?? is_staff()) {
             return true;
         }
 
         return self::level($post, $archive) === 'members' || self::isCustomer($userId);
+    }
+
+    public static function isStaffUser(int $userId): bool
+    {
+        $user = auth()->getProvider()->findById($userId);
+
+        return $user !== null && $user->inGroup('superadmin', 'admin', 'manager', 'instructor', 'vendor');
     }
 
     public static function isCustomer(int $userId): bool
