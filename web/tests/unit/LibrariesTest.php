@@ -37,6 +37,14 @@ final class LibrariesTest extends CIUnitTestCase
         $this->assertSame(1, substr_count($html, 'bible/'));
     }
 
+    public function testUploadSizeLimitComparesBytes(): void
+    {
+        // A 5 MB PDF is well under a 200 MB limit (this used to be rejected).
+        $this->assertFalse(\App\Libraries\Uploads::exceeds(5 * 1024 * 1024, 204800));
+        $this->assertFalse(\App\Libraries\Uploads::exceeds(204800 * 1024, 204800));
+        $this->assertTrue(\App\Libraries\Uploads::exceeds(204800 * 1024 + 1, 204800));
+    }
+
     public function testReferenceUrlsCarryVerseRanges(): void
     {
         $this->assertStringEndsWith('bible/philippians/4#v6-7', Scripture::url(Scripture::parse('Phil 4:6-7')));

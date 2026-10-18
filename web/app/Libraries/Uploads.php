@@ -55,6 +55,15 @@ class Uploads
         }
     }
 
+    /**
+     * Raw byte comparison. (getSizeByUnit('kb') returns a formatted string
+     * such as "4,882.813", which compares as text and rejected files over 1 MB.)
+     */
+    public static function exceeds(int $bytes, int $maxKb): bool
+    {
+        return $bytes > $maxKb * 1024;
+    }
+
     private static function check(UploadedFile $file, array $types, int $maxKb): void
     {
         if (! $file->isValid()) {
@@ -65,7 +74,7 @@ class Uploads
         if (! isset($types[$ext]) || ($mime !== $types[$ext] && ! ($ext === 'm4a' && str_starts_with($mime, 'audio/')) && ! ($ext === 'epub' && $mime === 'application/zip'))) {
             throw new RuntimeException('Unsupported file type. Allowed: ' . implode(', ', array_keys($types)) . '.');
         }
-        if ($file->getSizeByUnit('kb') > $maxKb) {
+        if (self::exceeds((int) $file->getSize(), $maxKb)) {
             throw new RuntimeException('File is too large (max ' . round($maxKb / 1024, 1) . ' MB).');
         }
     }
