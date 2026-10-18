@@ -18,17 +18,50 @@ class PayFastGateway
     private ?string $passphrase;
     private bool $sandbox;
 
+    /**
+     * Credentials come from Studio → Settings → Payments, falling back to
+     * PAYFAST_* values in .env (the original setup).
+     */
     public function __construct()
     {
-        $this->merchantId  = env('PAYFAST_MERCHANT_ID') ?: null;
-        $this->merchantKey = env('PAYFAST_MERCHANT_KEY') ?: null;
-        $this->passphrase  = env('PAYFAST_PASSPHRASE') ?: null;
-        $this->sandbox     = (bool) (env('PAYFAST_SANDBOX') ?? true);
+        $this->merchantId  = trim((string) site_setting('payfast_merchant_id', '')) ?: (env('PAYFAST_MERCHANT_ID') ?: null);
+        $this->merchantKey = trim(\App\Libraries\Mailer::secret('payfast_merchant_key')) ?: (env('PAYFAST_MERCHANT_KEY') ?: null);
+        $this->passphrase  = trim(\App\Libraries\Mailer::secret('payfast_passphrase')) ?: (env('PAYFAST_PASSPHRASE') ?: null);
+        $this->sandbox     = self::sandbox();
+    }
+
+    public static function sandbox(): bool
+    {
+        $mode = (string) site_setting('payfast_mode', '');
+        if ($mode !== '') {
+            return $mode !== 'live';
+        }
+
+        return (bool) (env('PAYFAST_SANDBOX') ?? true);
     }
 
     public function isLive(): bool
     {
         return $this->merchantId !== null && $this->merchantKey !== null;
+    }
+
+    /**
+     * PayFast only accepts subscriptions from accounts with a passphrase set
+     * (Settings → Developer Settings → Salt Passphrase).
+     */
+    public function canBillRecurring(): bool
+    {
+        return $this->isLive() && $this->passphrase !== null;
+    }
+
+    /**
+     * What the Studio settings page shows about the connection.
+     *
+     * @return array{configured: bool, recurring: bool, sandbox: bool, merchant_id: ?string}
+     */
+    public function status(): array
+    {
+        return ['configured' => $this->isLive(), 'recurring' => $this->canBillRecurring(), 'sandbox' => $this->sandbox, 'merchant_id' => $this->merchantId];
     }
 
     public function processUrl(): string
@@ -130,17 +163,9 @@ class PayFastGateway
         if (ENVIRONMENT === 'testing') {
             return true;
         }
-        $timestamp = date('Y-m-d\TH:i:sP');
-        $headers   = ['merchant-id' => (string) $this->merchantId, 'version' => 'v1', 'timestamp' => $timestamp];
-        $sign      = $headers;
-        if ($this->passphrase) {
-            $sign['passphrase'] = $this->passphrase;
-        }
-        ksort($sign);
-        $signature = md5(http_build_query($sign));
         try {
             $response = service('curlrequest', ['timeout' => 20, 'http_errors' => false], null, null, false)->request('PUT', 'https://api.payfast.co.za/subscriptions/' . rawurlencode($token) . '/cancel' . ($this->sandbox ? '?testing=true' : ''), [
-                'headers' => $headers + ['signature' => $signature, 'Content-Type' => 'application/json'],
+                'headers' => $this->apiHeaders() + ['Content-Type' => 'application/json'],
             ]);
             $data = json_decode((string) $response->getBody(), true);
 
@@ -157,16 +182,71 @@ class PayFastGateway
      */
     public static function updateCardUrl(string $token, string $returnUrl): string
     {
-        $host = (bool) (env('PAYFAST_SANDBOX') ?? true) ? 'sandbox.payfast.co.za' : 'www.payfast.co.za';
+        $host = self::sandbox() ? 'sandbox.payfast.co.za' : 'www.payfast.co.za';
 
         return 'https://' . $host . '/eng/recurring/update/' . rawurlencode($token) . '?return=' . rawurlencode($returnUrl);
     }
 
+    /**
+     * ITN signature check. PayFast signs every posted field in the order it
+     * sent them, blanks included (e.g. an empty name_last or custom_str1).
+     * Skipping blanks, as the checkout form signature does, made genuine ITNs
+     * fail. The variant without blanks is still accepted for older accounts;
+     * validateItn() then confirms the notification with PayFast directly.
+     */
     public function verifySignature(array $postData): bool
     {
-        $signature = $postData['signature'] ?? '';
+        $signature = (string) ($postData['signature'] ?? '');
         unset($postData['signature']);
+        if ($signature === '') {
+            return false;
+        }
+        $all = [];
+        foreach ($postData as $key => $value) {
+            $all[] = $key . '=' . urlencode((string) $value);
+        }
+        $withBlanks = implode('&', $all) . ($this->passphrase ? '&passphrase=' . urlencode($this->passphrase) : '');
 
-        return hash_equals($this->generateSignature($postData), $signature);
+        return hash_equals(md5($withBlanks), $signature) || hash_equals($this->generateSignature($postData), $signature);
+    }
+
+    /**
+     * Changes what a PayFast subscription charges from the next billing date
+     * (e.g. a student whose verification lapsed moves to the standard price).
+     */
+    public function updateSubscriptionAmount(string $token, int $amountCents): bool
+    {
+        if (! $this->isLive() || ENVIRONMENT === 'testing') {
+            return ENVIRONMENT !== 'production';
+        }
+        $body = json_encode(['amount' => $amountCents]);
+        try {
+            $response = service('curlrequest', ['timeout' => 20, 'http_errors' => false], null, null, false)->request('PATCH', 'https://api.payfast.co.za/subscriptions/' . rawurlencode($token) . '/update' . ($this->sandbox ? '?testing=true' : ''), [
+                'headers' => $this->apiHeaders(['amount' => (string) $amountCents]) + ['Content-Type' => 'application/json'],
+                'body'    => $body,
+            ]);
+
+            return $response->getStatusCode() < 300;
+        } catch (\Throwable $e) {
+            log_message('error', 'PayFast amount update failed: ' . $e->getMessage());
+
+            return false;
+        }
+    }
+
+    /**
+     * Signed headers for PayFast's REST API: header values (plus any body
+     * fields) and the passphrase, sorted by key, URL-encoded, MD5-hashed.
+     */
+    private function apiHeaders(array $bodyFields = []): array
+    {
+        $headers = ['merchant-id' => (string) $this->merchantId, 'version' => 'v1', 'timestamp' => date('Y-m-d\TH:i:sP')];
+        $sign    = $headers + $bodyFields;
+        if ($this->passphrase) {
+            $sign['passphrase'] = $this->passphrase;
+        }
+        ksort($sign);
+
+        return $headers + ['signature' => md5(http_build_query($sign))];
     }
 }

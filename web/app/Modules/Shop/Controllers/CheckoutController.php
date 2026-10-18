@@ -17,6 +17,7 @@ use App\Modules\Shop\Models\SubscriptionPlanModel;
 use App\Modules\Shop\Models\UserSubscriptionModel;
 use App\Modules\Shop\Services\Membership;
 use App\Modules\Shop\Services\PayFastGateway;
+use App\Modules\Shop\Services\StudentVerification;
 use App\Modules\Shop\Services\PaymentGateway;
 use App\Modules\Shop\Services\Pricing;
 
@@ -234,32 +235,35 @@ class CheckoutController extends BaseController
             return redirect()->to(site_url('account#membership'))->with('info', 'You already have an active membership.');
         }
         $recurring = $plan['type'] === 'subscription';
-        // Automatic renewals run through PayFast; offer only gateways that can bill this plan.
+        // Verified students pay the plan's student price (when it has one).
+        $student = $plan['student_price_cents'] !== null && $plan['student_price_cents'] !== '' && StudentVerification::isVerified($this->userId());
+        $price   = $student ? (int) $plan['student_price_cents'] : (int) $plan['price_cents'];
+        // Automatic renewals run through PayFast (which needs a passphrase for subscriptions).
         $gateways = $this->gateways();
         if ($recurring && isset($gateways['payfast'])) {
-            $gateways = ['payfast' => 'PayFast (card, debit order) — renews automatically'];
+            $gateways = (new PayFastGateway())->canBillRecurring() ? ['payfast' => 'PayFast (card, debit order) — renews automatically'] : array_diff_key($gateways, ['payfast' => 1]);
         }
         if ($this->request->getMethod() === 'POST') {
-            $subscriptionId = (int) (new UserSubscriptionModel())->insert(['user_id' => $this->userId(), 'plan_id' => $planId, 'status' => 'pending', 'updated_at' => date('Y-m-d H:i:s')], true);
+            $subscriptionId = (int) (new UserSubscriptionModel())->insert(['user_id' => $this->userId(), 'plan_id' => $planId, 'status' => 'pending', 'amount_cents' => $price, 'is_student' => $student ? 1 : 0, 'updated_at' => date('Y-m-d H:i:s')], true);
             $paymentId      = (int) (new PaymentModel())->insert([
                 'plan_id'         => $planId,
                 'subscription_id' => $subscriptionId,
                 'user_id'         => $this->userId(),
                 'gateway'         => 'pending',
-                'amount_cents'    => $plan['price_cents'],
+                'amount_cents'    => $price,
                 'currency'        => $plan['currency'],
                 'status'          => 'pending',
             ], true);
 
-            return $this->beginPayment($paymentId, (int) $plan['price_cents'], $plan['currency'], $plan['name'], site_url('account#membership'), site_url('checkout/plan/' . $planId), null,
-                $recurring ? ['amount_cents' => (int) $plan['price_cents'], 'interval' => $plan['billing_interval'] ?: 'month'] : null, $gateways);
+            return $this->beginPayment($paymentId, $price, $plan['currency'], $plan['name'] . ($student ? ' (student)' : ''), site_url('account#membership'), site_url('checkout/plan/' . $planId), null,
+                $recurring ? ['amount_cents' => $price, 'interval' => $plan['billing_interval'] ?: 'month'] : null, $gateways);
         }
 
         $interval = $recurring ? ' / ' . ($plan['billing_interval'] ?: 'month') : ' once';
 
-        return view('Shop/checkout/product', ['title' => 'Membership', 'kind' => 'Membership', 'name' => $plan['name'],
-            'description' => $recurring ? 'Access to every membership course. Renews automatically each ' . ($plan['billing_interval'] ?: 'month') . ' — cancel any time from your account.' : 'Access to every membership course, forever.',
-            'price' => (int) $plan['price_cents'], 'currency' => $plan['currency'], 'suffix' => $interval, 'gateways' => $gateways, 'icon' => 'sparkles']);
+        return view('Shop/checkout/product', ['title' => 'Membership', 'kind' => 'Membership', 'name' => $plan['name'] . ($student ? ' — student price' : ''),
+            'description' => ($student ? 'Your verified student status gives you the student price. ' : '') . ($recurring ? 'Access to every membership course. Renews automatically each ' . ($plan['billing_interval'] ?: 'month') . ' — cancel any time from your account.' : 'Access to every membership course, forever.'),
+            'price' => $price, 'currency' => $plan['currency'], 'suffix' => $interval, 'gateways' => $gateways, 'icon' => 'sparkles']);
     }
 
     /**
@@ -431,7 +435,12 @@ class CheckoutController extends BaseController
         } elseif ($status === 'COMPLETE' && $payment['subscription_id'] && $pfId !== '' && ! $payments->where('external_id', $pfId)->countAllResults()) {
             // A recurring charge on an existing PayFast subscription.
             $plan = (new SubscriptionPlanModel())->find($payment['plan_id']);
-            if ($plan && abs($amount - (int) $plan['price_cents']) <= 1) {
+            $sub  = (new UserSubscriptionModel())->find($payment['subscription_id']);
+            // PayFast has already collected this; accept the member's recorded price,
+            // or the plan's standard/student price (e.g. just after a student re-price).
+            $expected = array_filter([$sub ? Membership::chargeFor($sub, $plan) : null, $plan['price_cents'] ?? null, $plan['student_price_cents'] ?? null], static fn ($v) => $v !== null && $v !== '');
+            $matches  = array_filter($expected, static fn ($v) => abs($amount - (int) $v) <= 1) !== [];
+            if ($plan && $matches) {
                 $payments->insert([
                     'plan_id' => $payment['plan_id'], 'subscription_id' => $payment['subscription_id'], 'user_id' => $payment['user_id'],
                     'gateway' => 'payfast', 'external_id' => $pfId, 'amount_cents' => $amount, 'currency' => $plan['currency'], 'status' => 'paid',

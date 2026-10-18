@@ -33,7 +33,9 @@ class PlanController extends StudioController
         }
         $type = $this->post('type') === 'lifetime' ? 'lifetime' : 'subscription';
         $data = ['name' => $name, 'type' => $type, 'billing_interval' => $type === 'subscription' ? ($this->post('billing_interval') === 'year' ? 'year' : 'month') : null,
-            'price_cents' => max(0, $this->money('price')), 'currency' => store_currency(), 'is_active' => 1];
+            'price_cents' => max(0, $this->money('price')), 'currency' => store_currency(), 'is_active' => 1,
+            // Empty = no student price on this plan.
+            'student_price_cents' => trim((string) $this->post('student_price')) === '' ? null : max(0, $this->money('student_price'))];
         $model = new SubscriptionPlanModel();
         $id    = (int) $this->post('id');
         $id ? $model->update($id, $data) : $model->insert($data + ['created_at' => date('Y-m-d H:i:s')]);

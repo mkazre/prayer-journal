@@ -9,7 +9,7 @@ class UserSubscriptionModel extends Model
     protected $table         = 'user_subscriptions';
     protected $primaryKey    = 'id';
     protected $returnType    = 'array';
-    protected $allowedFields = ['user_id', 'plan_id', 'status', 'started_at', 'expires_at', 'gateway', 'gateway_token', 'renews', 'last_payment_at', 'cancelled_at', 'reminded_for', 'notice_stage', 'updated_at'];
+    protected $allowedFields = ['user_id', 'plan_id', 'status', 'started_at', 'expires_at', 'gateway', 'gateway_token', 'renews', 'last_payment_at', 'cancelled_at', 'reminded_for', 'notice_stage', 'updated_at', 'amount_cents', 'is_student'];
     protected $useTimestamps = false;
 
     public function hasActive(int $userId): bool

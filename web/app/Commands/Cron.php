@@ -42,6 +42,10 @@ class Cron extends BaseCommand
             $m = Membership::checkAll();
             CLI::write('Memberships: ' . http_build_query($m, '', ', '));
 
+            // Student status: warn two weeks ahead, then move lapsed students to the standard price.
+            $s = \App\Modules\Shop\Services\StudentVerification::checkAll();
+            CLI::write('Student status: ' . http_build_query($s, '', ', '));
+
             $today = date('Y-m-d');
             $hour  = (int) site_setting('reminder_hour', '9');
             if (CLI::getOption('reminders-now') || (site_setting('reminders_last_run') !== $today && (int) date('G') >= $hour)) {

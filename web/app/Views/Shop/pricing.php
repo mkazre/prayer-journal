@@ -14,7 +14,16 @@
             <?php foreach ($plans as $i => $plan) : $featured = count($plans) > 1 && $i === 1; ?>
                 <div class="card card-body stack" style="<?= $featured ? 'border:2px solid var(--brand-500);box-shadow:var(--shadow)' : '' ?>">
                     <div class="row between"><h3 class="mb-0"><?= esc($plan['name']) ?></h3><?php if ($featured) : ?><span class="badge badge-brand">Most popular</span><?php endif ?></div>
-                    <div><span class="price" style="font-size:2.2rem"><?= money((int) $plan['price_cents'], $plan['currency']) ?></span><span class="text-muted"> <?= $plan['type'] === 'subscription' ? '/ ' . esc($plan['billing_interval'] ?: 'month') : 'one-time' ?></span></div>
+                    <?php $hasStudent = $plan['student_price_cents'] !== null && $plan['student_price_cents'] !== ''; $per = $plan['type'] === 'subscription' ? '/ ' . esc($plan['billing_interval'] ?: 'month') : 'one-time'; ?>
+                    <?php if ($hasStudent && $student) : ?>
+                        <div><span class="price" style="font-size:2.2rem"><?= money((int) $plan['student_price_cents'], $plan['currency']) ?></span><span class="text-muted"> <?= $per ?></span> <span class="badge badge-success"><?= icon('graduation') ?>Student price</span></div>
+                        <div class="text-sm text-muted">Standard price <s><?= money((int) $plan['price_cents'], $plan['currency']) ?></s> — you're a verified student.</div>
+                    <?php else : ?>
+                        <div><span class="price" style="font-size:2.2rem"><?= money((int) $plan['price_cents'], $plan['currency']) ?></span><span class="text-muted"> <?= $per ?></span></div>
+                        <?php if ($hasStudent && $studentEnabled) : ?>
+                            <a class="text-sm" href="<?= site_url('account/student') ?>"><?= icon('graduation') ?> Students pay <?= money((int) $plan['student_price_cents'], $plan['currency']) ?> <?= $per ?> — verify your student status</a>
+                        <?php endif ?>
+                    <?php endif ?>
                     <ul class="checklist text-sm">
                         <li><?= icon('check') ?>Every members-only course</li>
                         <li><?= icon('check') ?>Certificates of completion</li>

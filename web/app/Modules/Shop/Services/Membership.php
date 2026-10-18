@@ -191,6 +191,37 @@ class Membership
         return $done;
     }
 
+    /**
+     * A member's student status lapsed: their renewing membership moves to
+     * the plan's standard price, at PayFast too, from the next billing date.
+     */
+    public static function endStudentPricing(int $userId): bool
+    {
+        $model = new UserSubscriptionModel();
+        $sub   = $model->where(['user_id' => $userId, 'is_student' => 1])->whereIn('status', ['active', 'past_due'])->orderBy('id', 'DESC')->first();
+        $plan  = $sub ? (new SubscriptionPlanModel())->find($sub['plan_id']) : null;
+        if (! $sub || ! $plan) {
+            return false;
+        }
+        if ($sub['renews'] && $sub['gateway'] === 'payfast' && $sub['gateway_token']
+            && ! (new PayFastGateway())->updateSubscriptionAmount($sub['gateway_token'], (int) $plan['price_cents'])) {
+            log_message('error', 'Could not move subscription ' . $sub['id'] . ' to the standard price at PayFast; it stays on the student price until fixed in the PayFast dashboard.');
+
+            return false;
+        }
+        $model->update($sub['id'], ['amount_cents' => (int) $plan['price_cents'], 'is_student' => 0, 'updated_at' => date('Y-m-d H:i:s')]);
+
+        return true;
+    }
+
+    /**
+     * What a renewal of this subscription should charge.
+     */
+    public static function chargeFor(array $sub, ?array $plan): int
+    {
+        return $sub['amount_cents'] !== null && $sub['amount_cents'] !== '' ? (int) $sub['amount_cents'] : (int) ($plan['price_cents'] ?? 0);
+    }
+
     public static function nextPeriod(int $from, ?array $plan): ?string
     {
         if (! $plan || $plan['type'] !== 'subscription') {
