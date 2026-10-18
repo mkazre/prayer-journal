@@ -5,12 +5,12 @@
     <meta charset="utf-8"><title>My Prayer Journal — <?= esc(display_name()) ?></title>
     <link href="https://fonts.googleapis.com/css2?family=Literata:ital,wght@0,400;0,600;1,400&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Literata', Georgia, serif; color: #1a1424; max-width: 760px; margin: 2rem auto; padding: 0 1.5rem; line-height: 1.6; }
+        body { font-family: 'Literata', Georgia, serif; color: #141924; max-width: 760px; margin: 2rem auto; padding: 0 1.5rem; line-height: 1.6; }
         header { display: flex; align-items: center; gap: 1rem; border-bottom: 2px solid #c9a227; padding-bottom: 1rem; margin-bottom: 1.5rem; }
         header img { width: 56px; height: 56px; border-radius: 12px; }
-        h1 { font-family: 'Playfair Display', serif; margin: 0; color: #4b1e82; }
-        .meta { color: #776f85; font-size: .9rem; }
-        .entry { padding: .9rem 0; border-bottom: 1px solid #e6e1ee; break-inside: avoid; }
+        h1 { font-family: 'Playfair Display', serif; margin: 0; color: #232d47; }
+        .meta { color: #6f7585; font-size: .9rem; }
+        .entry { padding: .9rem 0; border-bottom: 1px solid #e1e5ee; break-inside: avoid; }
         .entry h3 { margin: 0 0 .2rem; font-size: 1rem; }
         .kind { font: 700 .7rem system-ui, sans-serif; text-transform: uppercase; letter-spacing: .1em; color: #8a6b0f; }
         .answered { color: #13795b; font-weight: 600; font-family: system-ui, sans-serif; font-size: .8rem; }

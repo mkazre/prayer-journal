@@ -15,7 +15,7 @@ $accent      = preg_match('/^#[0-9a-f]{6}$/i', (string) site_setting('accent_col
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title><?= esc($pageTitle) ?></title>
 <meta name="description" content="<?= esc($description, 'attr') ?>">
-<meta name="theme-color" content="#2e1052">
+<meta name="theme-color" content="#161c2e">
 <meta property="og:title" content="<?= esc($pageTitle, 'attr') ?>">
 <meta property="og:description" content="<?= esc($description, 'attr') ?>">
 <meta property="og:type" content="website">

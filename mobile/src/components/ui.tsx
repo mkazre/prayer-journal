@@ -134,7 +134,7 @@ export function Button({ title, onPress, icon, variant = 'primary', loading, dis
   const { c } = useTheme();
   const palette = {
     primary: { bg: c.brand, fg: c.onBrand, border: c.brand },
-    accent: { bg: c.accent, fg: '#16121C', border: c.accent },
+    accent: { bg: c.accent, fg: '#12151C', border: c.accent },
     soft: { bg: c.brandSoft, fg: c.brandInk, border: c.brandSoft },
     ghost: { bg: 'transparent', fg: c.text, border: c.border },
     danger: { bg: c.dangerSoft, fg: c.danger, border: c.dangerSoft },
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '800', letterSpacing: -0.2 },
   headerAction: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
   dot: { position: 'absolute', top: -3, right: -3, minWidth: 18, height: 18, borderRadius: 9, borderWidth: 2, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
-  dotText: { fontSize: 9, fontWeight: '800', color: '#16121C' },
+  dotText: { fontSize: 9, fontWeight: '800', color: '#12151C' },
   card: { borderRadius: radius.lg, borderWidth: 1, padding: space.lg },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: -4 },
   btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 50, borderRadius: radius.md, paddingHorizontal: 18, borderWidth: 1 },

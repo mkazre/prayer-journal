@@ -33,7 +33,7 @@ export default function OnboardingScreen({ navigation }: any) {
   const last = index === SLIDES.length - 1;
 
   return (
-    <LinearGradient colors={[brand.purpleDark, '#1A0A30']} style={{ flex: 1, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 20 }}>
+    <LinearGradient colors={[brand.navyDark, '#131827']} style={{ flex: 1, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 20 }}>
       <View style={styles.top}>
         <Logo size={44} />
         <Pressable onPress={() => finish('Login')} hitSlop={10}><Text style={styles.skip}>Skip</Text></Pressable>

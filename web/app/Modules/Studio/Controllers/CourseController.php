@@ -151,7 +151,7 @@ class CourseController extends StudioController
                 'copy_protection'       => ! empty($p['copy_protection']),
                 'enrollment_limit'      => ($p['enrollment_limit'] ?? '') !== '' ? max(1, (int) $p['enrollment_limit']) : null,
                 'access_days'           => ($p['access_days'] ?? '') !== '' ? max(1, (int) $p['access_days']) : null,
-                'brand_color'           => $hex($p['brand_color'] ?? '', '#4b1e82'),
+                'brand_color'           => $hex($p['brand_color'] ?? '', '#232d47'),
                 'accent_color'          => $hex($p['accent_color'] ?? '', '#c9a227'),
                 'welcome_message'       => trim(mb_substr((string) ($p['welcome_message'] ?? ''), 0, 1000)),
                 'completion_message'    => trim(mb_substr((string) ($p['completion_message'] ?? ''), 0, 1000)),

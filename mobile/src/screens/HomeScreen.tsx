@@ -40,7 +40,7 @@ export default function HomeScreen({ navigation }: any) {
     <Screen title="Prayer Journal" subtitle={`${greeting()}, ${data.user.name}`} right={right} refreshing={refreshing} onRefresh={refresh}>
       {verse ? (
         <Pressable onPress={() => navigation.navigate('BibleChapter', { book: verse.book, chapter: verse.chapter, verse: verse.verse })}>
-          <LinearGradient colors={[brand.purpleDark, brand.purple]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.verse}>
+          <LinearGradient colors={[brand.navyDark, brand.navy]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.verse}>
             <View style={styles.verseTop}>
               <Text style={styles.verseEyebrow}>VERSE OF THE DAY</Text>
               <Pressable hitSlop={10} onPress={() => Share.share({ message: `“${verse.text}” — ${verse.reference}` })} accessibilityLabel="Share verse">

@@ -44,7 +44,7 @@ class CourseModel extends Model
         'autoplay_next'         => false,
         'enrollment_limit'      => null,
         'access_days'           => null,
-        'brand_color'           => '#4b1e82',
+        'brand_color'           => '#232d47',
         'accent_color'          => '#c9a227',
         'welcome_message'       => '',
         'completion_message'    => '',

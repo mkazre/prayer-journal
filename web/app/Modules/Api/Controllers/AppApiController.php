@@ -21,7 +21,7 @@ class AppApiController extends BaseApiController
             'name'        => site_name(),
             'tagline'     => (string) site_setting('tagline', 'Pray. Reflect. Grow.'),
             'logo_url'    => logo_url(),
-            'brand_color' => (string) (site_setting('brand_color') ?: '#4b1e82'),
+            'brand_color' => (string) (site_setting('brand_color') ?: '#232d47'),
             'accent_color' => (string) (site_setting('accent_color') ?: '#c9a227'),
             'currency'    => store_currency(),
             'announcement' => (string) site_setting('announcement', ''),
