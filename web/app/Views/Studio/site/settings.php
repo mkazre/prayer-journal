@@ -2,7 +2,7 @@
 <?= $this->section('crumbs') ?><a href="<?= site_url('studio') ?>">Studio</a><?= icon('chevron-right') ?><span>Settings</span><?= $this->endSection() ?>
 <?= $this->section('content') ?>
 <?php
-$groupIcons = ['Branding' => 'palette', 'Home page' => 'home', 'Contact & footer' => 'phone', 'Store' => 'store', 'Emails' => 'mail'];
+$groupIcons = ['Branding' => 'palette', 'Home page' => 'home', 'Contact & footer' => 'phone', 'Store' => 'store', 'Payments' => 'credit-card', 'Students' => 'graduation', 'Emails' => 'mail'];
 $anchor     = static fn (string $g) => strtolower(strtok($g, ' '));
 $logo       = $values['logo_path'] ?? '';
 ?>
@@ -34,6 +34,43 @@ $logo       = $values['logo_path'] ?? '';
                         <a class="btn btn-ghost" href="<?= site_url('studio/emails') ?>"><?= icon('list') ?>Email log</a>
                     </div>
                     <p class="help">Emails currently send from <strong><?= esc($mail['from']) ?></strong>. For best delivery, create that mailbox in cPanel (<em>Email Accounts</em>), enter its SMTP details below, and turn on <em>Email Deliverability</em> (SPF/DKIM) for your domain.</p>
+                <?php endif ?>
+                <?php if ($name === 'Payments') : ?>
+                    <div class="alert <?= $payfast['recurring'] ? 'alert-success' : 'alert-warning' ?> mb-3"><?= icon($payfast['recurring'] ? 'check-circle' : 'alert') ?><div>
+                        <?php if (! $payfast['configured']) : ?><strong>PayFast is not connected.</strong> Enter your Merchant ID and Merchant Key below.
+                        <?php elseif (! $payfast['recurring']) : ?><strong>Once-off payments work, but memberships can't renew automatically yet.</strong> Set a Salt Passphrase in PayFast (Settings → Developer Settings) and enter the same passphrase below.
+                        <?php else : ?><strong>PayFast is connected<?= $payfast['sandbox'] ? ' in Sandbox mode (test payments only)' : ' and live' ?>.</strong> Once-off payments and recurring memberships are enabled.<?php endif ?>
+                    </div></div>
+                    <div class="card card-body mb-3" style="background:var(--surface-2)">
+                        <strong class="mb-1">Enter these in your PayFast dashboard</strong>
+                        <div class="text-sm stack" style="gap:.4rem">
+                            <div><span class="text-muted">Settings → Recurring Billing → <em>Notify URL</em>:</span><br><code class="allow-select"><?= esc(site_url('webhooks/payfast')) ?></code></div>
+                            <div><span class="text-muted">Settings → Developer Settings → <em>Salt Passphrase</em>:</span> choose one, save it there, and type the same one below.</div>
+                            <div><span class="text-muted">Settings → Recurring Billing:</span> accept the Terms &amp; Conditions and Save. <em>Enable Tokenization</em> can stay off (memberships use PayFast subscriptions).</div>
+                            <div><span class="text-muted">IP whitelist:</span> optional — leave empty, or add your server's IP address (cPanel → General Information → Shared IP Address).</div>
+                        </div>
+                    </div>
+                <?php endif ?>
+                <?php if ($name === 'Students') : ?>
+                    <div class="alert <?= $students['configured'] && $students['webhook'] ? 'alert-success' : 'alert-warning' ?> mb-3"><?= icon($students['configured'] ? 'check-circle' : 'alert') ?><div>
+                        <?php if (! $students['configured']) : ?><strong>Student verification is off.</strong> Add your SheerID Program ID and access token below. Until then the student price stays hidden.
+                        <?php elseif (! $students['webhook']) : ?><strong>Verification works</strong> (checked when students return to the site). Add the webhook secret so results also arrive instantly.
+                        <?php else : ?><strong>Student verification is on.</strong> <?= (int) $students['verified'] ?> verified student<?= (int) $students['verified'] === 1 ? '' : 's' ?> right now.<?php endif ?>
+                    </div></div>
+                    <div class="card card-body mb-3" style="background:var(--surface-2)">
+                        <strong class="mb-1">Enter these in MySheerID (your student program)</strong>
+                        <div class="text-sm stack" style="gap:.4rem">
+                            <div><span class="text-muted">Webhook URL (success and other events):</span><br><code class="allow-select"><?= esc(site_url('webhooks/sheerid')) ?></code></div>
+                            <div><span class="text-muted">Redirect / "return to site" URL after verification:</span><br><code class="allow-select"><?= esc(site_url('account/student/return')) ?></code></div>
+                            <div><span class="text-muted">Eligibility:</span> currently enrolled students at South African universities, universities of technology, TVET colleges and recognised colleges. Set the student price on each plan in <a href="<?= site_url('studio/plans') ?>">Membership plans</a>.</div>
+                        </div>
+                    </div>
+                    <?php if ($students['recent']) : ?>
+                        <div class="table-wrap mb-3"><table class="table table-compact">
+                            <thead><tr><th>Member</th><th>Status</th><th>Institution</th><th>Valid until</th></tr></thead>
+                            <tbody><?php foreach ($students['recent'] as $r) : ?><tr><td><?= esc($r['username']) ?></td><td><span class="badge badge-dot <?= $r['status'] === 'verified' ? 'badge-success' : ($r['status'] === 'pending' ? 'badge-info' : 'badge-warning') ?>"><?= esc(ucfirst($r['status'])) ?></span><?= $r['detail'] ? '<div class="text-xs text-muted">' . esc($r['detail']) . '</div>' : '' ?></td><td class="text-sm"><?= esc((string) $r['institution']) ?></td><td class="text-sm"><?= $r['expires_at'] ? date('j M Y', strtotime($r['expires_at'])) : '—' ?></td></tr><?php endforeach ?></tbody>
+                        </table></div>
+                    <?php endif ?>
                 <?php endif ?>
                 <?php if ($name === 'Branding') : ?>
                     <div class="field">

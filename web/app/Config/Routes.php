@@ -107,6 +107,11 @@ $routes->match(['GET', 'POST'], 'checkout/module/(:num)', $shop . 'CheckoutContr
 $routes->post('account/membership/cancel', $shop . 'CheckoutController::cancelMembership', ['filter' => 'session']);
 $routes->post('webhooks/stripe', $shop . 'CheckoutController::webhook');
 $routes->post('webhooks/payfast', $shop . 'CheckoutController::payfastNotify');
+$routes->post('webhooks/sheerid', $shop . 'StudentController::webhook');
+// Student status (SheerID verification) for student pricing on membership plans
+$routes->get('account/student', $shop . 'StudentController::index', ['filter' => 'session']);
+$routes->post('account/student/verify', $shop . 'StudentController::verify', ['filter' => 'session']);
+$routes->get('account/student/return', $shop . 'StudentController::back', ['filter' => 'session']);
 $routes->get('orders/(:num)', $shop . 'OrderController::show/$1');
 $routes->get('orders/(:num)/confirmation', $shop . 'OrderController::show/$1');
 $routes->get('orders/(:num)/download/(:num)', $shop . 'OrderController::download/$1/$2'); // session or signed link

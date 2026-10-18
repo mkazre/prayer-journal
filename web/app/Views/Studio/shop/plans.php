@@ -17,6 +17,9 @@ $modal = static function (array $p): string {
                     <div class="field"><label class="label">Billing</label><select class="select" name="billing_interval"><option value="month">Monthly</option><option value="year" <?= ($p['billing_interval'] ?? '') === 'year' ? 'selected' : '' ?>>Yearly</option></select></div>
                     <div class="field"><label class="label">Price (<?= esc(store_currency()) ?>)</label><input class="input" name="price" inputmode="decimal" value="<?= number_format((int) ($p['price_cents'] ?? 0) / 100, 2, '.', '') ?>"></div>
                 </div>
+                <div class="field"><label class="label">Student price (<?= esc(store_currency()) ?>) <span class="opt">(optional)</span></label>
+                    <input class="input" name="student_price" inputmode="decimal" placeholder="e.g. 9.99 — leave empty for no student price" value="<?= isset($p['student_price_cents']) && $p['student_price_cents'] !== null && $p['student_price_cents'] !== '' ? number_format((int) $p['student_price_cents'] / 100, 2, '.', '') : '' ?>">
+                    <p class="help">Charged instead of the price above to members with a verified student status (Settings → Students).</p></div>
             </div>
             <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>Cancel</button><button class="btn btn-primary" type="submit">Save plan</button></div>
         </form>
@@ -38,6 +41,7 @@ $modal = static function (array $p): string {
             <div class="row between"><span class="badge <?= $p['is_active'] ? 'badge-success' : '' ?> badge-dot"><?= $p['is_active'] ? 'Live' : 'Hidden' ?></span><span class="text-xs text-muted"><?= $p['type'] === 'lifetime' ? 'One-off' : 'Billed ' . ($p['billing_interval'] === 'year' ? 'yearly' : 'monthly') ?></span></div>
             <h3 class="mt-2 mb-0"><?= esc($p['name']) ?></h3>
             <div class="stat-value mt-1"><?= money((int) $p['price_cents'], $p['currency']) ?><span class="text-sm text-muted"><?= $p['type'] === 'lifetime' ? '' : ' / ' . ($p['billing_interval'] === 'year' ? 'year' : 'month') ?></span></div>
+            <?php if ($p['student_price_cents'] !== null && $p['student_price_cents'] !== '') : ?><div class="text-sm"><span class="badge badge-accent"><?= icon('graduation') ?>Students: <?= money((int) $p['student_price_cents'], $p['currency']) ?></span></div><?php endif ?>
             <p class="text-sm text-muted"><?= icon('users') ?> <?= (int) $p['members'] ?> active member<?= (int) $p['members'] === 1 ? '' : 's' ?></p>
             <div class="row gap-xs">
                 <button class="btn btn-sm" type="button" data-modal-open="plan-<?= $p['id'] ?>"><?= icon('edit') ?>Edit</button>
@@ -58,7 +62,7 @@ $modal = static function (array $p): string {
             <?php foreach ($members as $m) : [$label, $tone] = ['active' => ['Active', 'badge-success'], 'past_due' => ['Payment overdue', 'badge-warning'], 'cancelled' => ['Cancelled', ''], 'expired' => ['Ended / suspended', 'badge-danger']][$m['status']] ?? [ucfirst($m['status']), '']; ?>
                 <tr>
                     <td class="text-sm"><span class="fw-600"><?= esc($m['display_name'] ?: $m['username']) ?></span><div class="text-xs text-muted"><?= esc((string) $m['email']) ?></div></td>
-                    <td class="text-sm"><?= esc($m['plan_name']) ?><div class="text-xs text-muted"><?= money((int) $m['price_cents'], $m['currency']) ?><?= $m['renews'] ? ' · auto-renews' : '' ?></div></td>
+                    <td class="text-sm"><?= esc($m['plan_name']) ?><div class="text-xs text-muted"><?= money($m['amount_cents'] !== null ? (int) $m['amount_cents'] : (int) $m['price_cents'], $m['currency']) ?><?= ! empty($m['is_student']) ? ' · student' : '' ?><?= $m['renews'] ? ' · auto-renews' : '' ?></div></td>
                     <td><span class="badge badge-dot <?= $tone ?>"><?= $label ?></span></td>
                     <td class="text-sm nowrap"><?= $m['expires_at'] ? nice_date($m['expires_at'], 'j M Y') : 'Lifetime' ?></td>
                     <td class="text-sm nowrap text-muted"><?= $m['last_payment_at'] ? nice_date($m['last_payment_at'], 'j M Y') : '—' ?></td>

@@ -16,6 +16,8 @@ class PricingController extends BaseController
             'plans'   => (new SubscriptionPlanModel())->active(),
             'courses' => (new CourseModel())->published()->where('access_mode', 'subscription')->findAll(6),
             'active'  => auth()->loggedIn() && (new UserSubscriptionModel())->hasActive($this->userId()),
+            'student' => auth()->loggedIn() && \App\Modules\Shop\Services\StudentVerification::isVerified($this->userId()),
+            'studentEnabled' => \App\Modules\Shop\Services\StudentVerification::isConfigured(),
         ]);
     }
 }

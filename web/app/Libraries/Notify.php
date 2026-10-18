@@ -292,13 +292,44 @@ class Notify
     /* Membership                                                   */
     /* ------------------------------------------------------------ */
 
+    /**
+     * Student status reminders: 'expiring' (two weeks before) and 'expired'.
+     */
+    public static function studentStatus(string $event, int $userId, array $verification): void
+    {
+        $u = self::user($userId);
+        if (! $u) {
+            return;
+        }
+        $until = date('j F Y', strtotime((string) $verification['expires_at']));
+        $sub   = \App\Modules\Shop\Services\Membership::current($userId);
+        $plan  = $sub['plan'] ?? null;
+        $full  = $plan ? money((int) $plan['price_cents'], $plan['currency']) . ' / ' . ($plan['billing_interval'] === 'year' ? 'year' : 'month') : null;
+        [$subject, $heading, $tone, $paragraphs] = $event === 'expiring'
+            ? ['Renew your student verification', 'Your student status expires on ' . $until, 'warning', [
+                'Your verified student status ends on <strong>' . $until . '</strong>.',
+                'Verify again for the new academic year to keep your student price' . ($full ? '. Otherwise your membership moves to the standard price of ' . $full . ' from your next renewal.' : '.'),
+            ]]
+            : ['Your student status has expired', 'Your student status has expired', 'brand', [
+                'Your student verification has ended' . ($full ? ', so your membership now renews at the standard price of ' . $full : '') . '.',
+                'Still studying? Verify again and the student price applies from your next membership.',
+            ]];
+        self::inApp($userId, 'membership', $heading . '.');
+        self::email('student_' . $event, $u, $subject, [
+            'heading' => $heading, 'tone' => $tone, 'paragraphs' => $paragraphs, 'rows' => [],
+            'button' => ['Verify student status', site_url('account/student')], 'secondary' => null, 'note' => null,
+        ]);
+    }
+
     public static function membership(string $event, array $sub, array $plan): void
     {
         $u = self::user((int) $sub['user_id']);
         if (! $u) {
             return;
         }
-        $price   = money((int) $plan['price_cents'], $plan['currency']) . ($plan['type'] === 'subscription' ? ' / ' . ($plan['billing_interval'] === 'year' ? 'year' : 'month') : '');
+        // What this member is actually billed (the student price, if they signed up as a verified student).
+        $charged = isset($sub['amount_cents']) && $sub['amount_cents'] !== null ? (int) $sub['amount_cents'] : (int) $plan['price_cents'];
+        $price   = money($charged, $plan['currency']) . ($plan['type'] === 'subscription' ? ' / ' . ($plan['billing_interval'] === 'year' ? 'year' : 'month') : '') . (! empty($sub['is_student']) ? ' (student price)' : '');
         $until   = $sub['expires_at'] ? date('j F Y', strtotime($sub['expires_at'])) : null;
         $graceTo = $sub['expires_at'] ? date('j F Y', strtotime($sub['expires_at']) + \App\Modules\Shop\Services\Membership::GRACE_DAYS * 86400) : null;
         $manage  = ['Manage membership', site_url('account#membership')];

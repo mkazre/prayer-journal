@@ -47,6 +47,18 @@ class SiteController extends StudioController
             'shop_subtitle'            => ['Shop page text', 'textarea', ''],
             'allow_test_payments'      => ['Allow test payments in production', 'bool', 'Only for staging sites — orders are marked paid without taking money.'],
         ],
+        'Payments' => [
+            'payfast_mode'        => ['PayFast mode', 'select:sandbox=Sandbox (testing, no real money)|live=Live (real payments)', 'Use Sandbox with the sandbox credentials first, then switch to Live.'],
+            'payfast_merchant_id' => ['PayFast Merchant ID', 'text', 'PayFast → Settings → Developer Settings.'],
+            'payfast_merchant_key' => ['PayFast Merchant Key', 'password', 'PayFast → Settings → Developer Settings. Stored encrypted.'],
+            'payfast_passphrase'  => ['PayFast Salt Passphrase', 'password', 'Must match the passphrase set in PayFast → Developer Settings. Required for recurring memberships. Stored encrypted.'],
+        ],
+        'Students' => [
+            'sheerid_program_id'     => ['SheerID Program ID', 'text', 'MySheerID → your student program → Program tab.'],
+            'sheerid_access_token'   => ['SheerID API access token', 'password', 'MySheerID → Settings → Access Tokens. Stored encrypted.'],
+            'sheerid_webhook_secret' => ['SheerID webhook secret token', 'password', 'MySheerID → Settings → Secret Token (signs the webhooks). Stored encrypted.'],
+            'student_validity'       => ['Student status lasts', 'select:academic_year=Until 31 December (academic year)|12_months=12 months from verification', ''],
+        ],
         'Emails' => [
             'mail_from_name'       => ['Sender name', 'text', 'Shown as the sender, e.g. "Timeless Wisdom".'],
             'mail_from_email'      => ['Sender address', 'email', 'Use an address on your own domain, e.g. hello@timelesswisdomapp.com.'],
@@ -83,6 +95,13 @@ class SiteController extends StudioController
         $db = db_connect();
 
         return $this->render('site/settings', ['title' => 'Site settings', 'active' => 'settings', 'groups' => self::SETTINGS, 'values' => $values,
+            'payfast' => (new \App\Modules\Shop\Services\PayFastGateway())->status(),
+            'students' => [
+                'configured' => \App\Modules\Shop\Services\StudentVerification::isConfigured(),
+                'webhook'    => \App\Libraries\Mailer::secret('sheerid_webhook_secret') !== '',
+                'verified'   => $db->table('student_verifications')->where('status', 'verified')->where('expires_at >', date('Y-m-d H:i:s'))->countAllResults(),
+                'recent'     => $db->table('student_verifications v')->select('v.*, u.username')->join('users u', 'u.id = v.user_id')->orderBy('v.id', 'DESC')->limit(15)->get()->getResultArray(),
+            ],
             'mail' => [
                 'cron'     => Mailer::cronIsRunning(),
                 'lastCron' => (int) ($values['cron_last_run'] ?? 0),
