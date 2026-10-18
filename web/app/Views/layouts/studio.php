@@ -29,7 +29,7 @@ if ($isVendor) {
     $nav[] = ['Shop', $shop];
 }
 if ($isManager) {
-    $site = [['studio/prayer', 'Prayer wall', 'hands', 'prayer']];
+    $site = [['studio/blog', 'Blog', 'file-text', 'blog'], ['studio/prayer', 'Prayer wall', 'hands', 'prayer']];
     if ($isAdmin) {
         $site[] = ['studio/users', 'Users & roles', 'shield', 'users'];
         $site[] = ['studio/emails', 'Email log', 'mail', 'emails'];

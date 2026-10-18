@@ -66,10 +66,23 @@
                 ['graduation', 'Guided courses', 'Lessons, devotions, quizzes and certificates — at your own pace or one day at a time.', 'courses', ''],
                 ['notebook', 'Private prayer journal', 'Record prayer points with scripture, mark them answered, and look back on God\'s faithfulness.', 'journal', 'gold'],
                 ['book-open', 'The whole Bible', 'A beautiful reader with highlights, notes, bookmarks and instant verse look-ups everywhere.', 'bible', ''],
+                'prayerthon',
                 ['calendar-check', 'Reading plans', 'Bible in a year, the Gospels in 30 days, Psalms & Proverbs — with progress you can see.', 'bible/plans', 'gold'],
                 ['hands', 'Prayer wall', 'Share requests, stand with others in prayer, and celebrate answered prayers together.', 'prayer-requests', ''],
                 ['bag', 'Resources shop', 'Journals, books and gifts — digital downloads delivered instantly.', 'shop', 'gold'],
-            ] as [$ic, $h, $p, $href, $tone]) : ?>
+            ] as $item) : ?>
+                <?php if ($item === 'prayerthon') : ?>
+                    <a class="card card-hover feature feature-wide" href="<?= site_url('blog/prayerthon') ?>">
+                        <div class="feature-icon"><?= icon('map', 'icon-lg') ?></div>
+                        <div>
+                            <h3>Prayerthon</h3>
+                            <p>Embark on a guided prayer journey, with each kilometre inspiring focused prayer, reflection and a deeper connection with GOD.</p>
+                        </div>
+                        <span class="btn btn-accent feature-cta">Start the journey<?= icon('arrow-right') ?></span>
+                    </a>
+                    <?php continue ?>
+                <?php endif ?>
+                <?php [$ic, $h, $p, $href, $tone] = $item ?>
                 <a class="card card-hover feature" href="<?= site_url($href) ?>">
                     <div class="feature-icon <?= $tone ?>"><?= icon($ic, 'icon-lg') ?></div>
                     <h3><?= esc($h) ?></h3>

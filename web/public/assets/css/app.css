@@ -586,6 +586,12 @@ dialog.modal[open] { animation: modal-in .25s var(--ease); }
 .course-hero .breadcrumbs, .course-hero .breadcrumbs a { color: rgba(255,255,255,.7); }
 .buy-card { overflow: hidden; }
 .buy-card .course-cover { border-radius: 0; }
+/* The card is narrow: let long calls to action ("Join membership · from R9.99/month") wrap inside the button instead of spilling out. */
+.buy-card .card-body { padding: 1.5rem; }
+.buy-card .price { line-height: 1.25; }
+.buy-card .btn { white-space: normal; text-align: center; padding-left: 1rem; padding-right: 1rem; }
+.buy-card .btn-lg { font-size: .95rem; }
+.buy-card .btn .icon { flex: none; }
 .checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: .65rem; }
 .checklist li { display: flex; gap: .6rem; align-items: flex-start; font-size: .95rem; }
 .checklist li .icon { color: var(--success); margin-top: .2rem; }
@@ -959,3 +965,26 @@ body.protect img, body.protect video, body.protect audio { -webkit-user-drag: no
     body.protect > *:not(.protect-print) { display: none !important; }
     body.protect::after { content: "This course content is protected and cannot be printed."; display: block; padding: 3rem; font: 600 18px/1.5 sans-serif; text-align: center; }
 }
+
+/* ---------- Blog ---------- */
+.blog-hero { padding: 3.5rem 0 4rem; }
+.blog-hero .breadcrumbs, .blog-hero .breadcrumbs a { color: rgba(255,255,255,.75); }
+.blog-hero .lead { max-width: 680px; }
+.blog-card { padding: 0; overflow: hidden; display: flex; flex-direction: column; color: inherit; }
+.blog-card .course-cover { border-radius: 0; }
+.blog-card h3 { font-size: 1.15rem; margin-bottom: .4rem; }
+.blog-feature { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-lg); margin-bottom: 1.5rem; box-shadow: var(--shadow); }
+.locked-panel { padding: 2.5rem 1.5rem; background: linear-gradient(180deg, var(--surface), var(--brand-softer)); }
+.locked-list { list-style: none; padding: 0; margin: 0 auto; max-width: 420px; text-align: left; }
+.locked-list li { display: flex; align-items: center; gap: .6rem; padding: .5rem 0; border-top: 1px solid var(--border); color: var(--text-2); }
+.locked-list .icon { color: var(--muted); }
+
+/* Home: the featured Prayerthon block sits between the two rows of three (3-1-3). */
+.feature.feature-wide { grid-column: 1 / -1; display: flex; flex-direction: row; align-items: center; padding: 2rem 2.25rem; gap: 1.75rem; color: #fff; border: 0;
+    background: radial-gradient(600px 260px at 100% 0%, rgba(201,162,39,.38), transparent 60%), linear-gradient(135deg, #0f1321, #232d47 70%, #3a4a73); }
+.feature-wide:hover { color: #fff; }
+.feature-wide h3 { color: #fff; font-size: 1.6rem; margin-bottom: .35rem; }
+.feature-wide p { color: rgba(255,255,255,.85); margin: 0; max-width: 640px; }
+.feature-wide .feature-icon { margin: 0; flex: none; width: 4rem; height: 4rem; background: rgba(201,162,39,.18); color: var(--accent); }
+.feature-wide .feature-cta { margin-left: auto; flex: none; }
+@media (max-width: 720px) { .feature.feature-wide { flex-direction: column; align-items: flex-start; } .feature-wide .feature-cta { margin-left: 0; } }

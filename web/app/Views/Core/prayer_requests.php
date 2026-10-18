@@ -10,8 +10,10 @@ $link = static fn (array $o) => site_url('prayer-requests') . '?' . http_build_q
     <div class="page-head row between items-end">
         <div>
             <span class="eyebrow"><?= icon('hands') ?>Community</span>
-            <h1>Prayer wall</h1>
-            <p>“Carry each other’s burdens.” — Galatians 6:2. Share a request, and pray for someone else today.</p>
+            <h1>Prayer Wall</h1>
+            <p class="mb-1" style="font-family:var(--font-display);font-style:italic;font-size:1.15rem">“Carry each other’s burdens.” — <?= scripture_links('Galatians 6:2') ?></p>
+            <p class="mb-1" style="max-width:640px">A place where faith meets compassion. Share your prayer requests, stand in prayer with others and experience the power of a community united in faith.</p>
+            <p class="fw-600 mb-0">Share a prayer. Lift someone up. Stand together in faith.</p>
         </div>
         <div class="row gap-lg text-center">
             <div><div class="stat-value"><?= number_format($stats['requests']) ?></div><div class="text-xs text-muted">requests</div></div>
@@ -103,12 +105,13 @@ $link = static fn (array $o) => site_url('prayer-requests') . '?' . http_build_q
                 </div>
             <?php endif ?>
             <div class="card card-body text-sm">
-                <h3 class="h-sm"><?= icon('shield') ?> Wall guidelines</h3>
-                <ul class="list-check mb-0">
-                    <li>Keep details of other people private.</li>
-                    <li>Encourage — never correct or debate.</li>
-                    <li>Mark requests answered to share the testimony.</li>
+                <h3 class="h-sm"><?= icon('shield') ?> Prayer Wall Guidelines</h3>
+                <ul class="list-check">
+                    <li><strong>Respect privacy:</strong> Protect others' personal information.</li>
+                    <li><strong>Pray with love:</strong> Encourage and uplift without judging, correcting or debating.</li>
+                    <li><strong>Share testimonies:</strong> Mark answered prayers and celebrate God's faithfulness.</li>
                 </ul>
+                <p class="fw-600 mb-0" style="color:var(--accent-ink)">Together in prayer, united in faith, strengthened by love.</p>
             </div>
         </aside>
     </div>

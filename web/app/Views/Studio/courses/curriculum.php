@@ -19,7 +19,7 @@
                 <?php if ($s['id']) : ?><span class="drag-handle" tabindex="0" title="Drag to reorder module" aria-label="Reorder module"><?= icon('grip') ?></span><?php endif ?>
                 <span class="qnum"><?= $si + 1 ?></span>
                 <div class="grow"><h3><?= esc($s['title']) ?><?php if (! empty($s['price_cents'])) : ?> <span class="badge badge-accent" title="Sold on its own"><?= money((int) $s['price_cents']) ?></span><?php endif ?></h3><?php if ($s['summary']) : ?><div class="text-xs text-muted"><?= esc($s['summary']) ?></div><?php endif ?></div>
-                <span class="text-xs text-muted hide-sm"><?= count($s['items']) ?> items · <?= Curriculum::duration(Curriculum::totalMinutes([$s])) ?></span>
+                <span class="text-xs text-muted hide-sm"><?= Curriculum::itemSummary($s['items']) ?> · <?= Curriculum::duration(Curriculum::totalMinutes([$s])) ?></span>
                 <div class="dropdown" data-dropdown>
                     <button class="btn btn-sm" type="button" data-dropdown-toggle><?= icon('plus') ?>Add</button>
                     <div class="dropdown-menu">

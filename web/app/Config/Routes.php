@@ -125,6 +125,13 @@ $routes->post('prayer-requests/(:num)/pray', $core . 'PrayerRequestController::p
 $routes->post('prayer-requests/(:num)/answered', $core . 'PrayerRequestController::answered/$1', ['filter' => 'session']);
 $routes->post('prayer-requests/(:num)/delete', $core . 'PrayerRequestController::delete/$1', ['filter' => 'session']);
 
+// Blog: archives (series such as Prayerthon), posts and their resources
+$blog = '\App\Modules\Blog\Controllers\\';
+$routes->get('blog', $blog . 'BlogController::index');
+$routes->get('blog/resources/(:num)', $blog . 'BlogController::resource/$1', ['filter' => 'session']);
+$routes->get('blog/(:segment)', $blog . 'BlogController::archive/$1');
+$routes->get('blog/(:segment)/(:segment)', $blog . 'BlogController::post/$1/$2');
+
 // ---------------------------------------------------------------------
 // Studio: one back office for instructors, vendors and admins.
 // Each controller narrows access further (e.g. orders are admin-only).
@@ -207,6 +214,16 @@ $routes->group('studio', ['filter' => ['session', 'group:superadmin,admin,manage
     $routes->post('plans/(:num)/toggle', $std . 'PlanController::toggle/$1');
     $routes->post('memberships/(:num)/cancel', $std . 'PlanController::cancelMember/$1');
     $routes->get('reports', $std . 'ReportController::index');
+
+    // Blog
+    $routes->get('blog', $std . 'BlogController::index');
+    $routes->match(['GET', 'POST'], 'blog/archives/new', $std . 'BlogController::createArchive');
+    $routes->match(['GET', 'POST'], 'blog/archives/(:num)', $std . 'BlogController::editArchive/$1');
+    $routes->post('blog/archives/(:num)/delete', $std . 'BlogController::deleteArchive/$1');
+    $routes->match(['GET', 'POST'], 'blog/archives/(:num)/posts/new', $std . 'BlogController::createPost/$1');
+    $routes->match(['GET', 'POST'], 'blog/posts/(:num)', $std . 'BlogController::editPost/$1');
+    $routes->post('blog/posts/(:num)/delete', $std . 'BlogController::deletePost/$1');
+    $routes->post('blog/resources/(:num)/delete', $std . 'BlogController::deleteResource/$1');
 
     // Community & site
     $routes->get('prayer', $std . 'SiteController::prayer');
