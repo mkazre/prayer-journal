@@ -15,7 +15,7 @@
     <?php if ($tab === 'highlights') : ?>
         <div class="row gap-sm mb-2">
             <a class="chip <?= $color === '' ? 'is-active' : '' ?>" href="<?= site_url('bible/library?tab=highlights') ?>">All colours</a>
-            <?php foreach ($colors as $c) : ?><a class="chip <?= $color === $c ? 'is-active' : '' ?>" href="<?= site_url('bible/library?tab=highlights&color=' . $c) ?>"><span class="swatch" data-c="<?= $c ?>" style="width:1rem;height:1rem;box-shadow:none"></span><?= ucfirst($c) ?></a><?php endforeach ?>
+            <?php foreach ($colors as $c) : ?><a class="chip <?= $color === $c ? 'is-active' : '' ?>" href="<?= site_url('bible/library?tab=highlights&color=' . $c) ?>"><span class="swatch" data-c="<?= $c ?>" style="width:1rem;height:1rem;box-shadow:none"></span><?= esc(\App\Modules\Bible\Controllers\BibleController::COLOR_LABELS[$c] ?? ucfirst($c)) ?></a><?php endforeach ?>
         </div>
     <?php endif ?>
     <?php if ($items === []) : ?>

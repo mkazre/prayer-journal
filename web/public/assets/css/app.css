@@ -38,7 +38,7 @@
     --hl-green: #c8f2d0;
     --hl-blue: #cfe5ff;
     --hl-pink: #ffd6e7;
-    --hl-purple: #e6d8ff;
+    --hl-purple: #cdd3e3;
     --hl-orange: #ffe0c2;
 
     --radius-xs: 6px;
@@ -97,7 +97,7 @@
     --hl-green: rgba(76, 199, 120, .28);
     --hl-blue: rgba(89, 158, 255, .3);
     --hl-pink: rgba(255, 105, 170, .28);
-    --hl-purple: rgba(168, 129, 230, .34);
+    --hl-purple: rgba(110, 127, 173, .38);
     --hl-orange: rgba(255, 150, 70, .28);
 
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, .4);
@@ -765,7 +765,7 @@ body.player-collapsed .lesson-nav { left: 0; }
 .swatch { width: 1.65rem; height: 1.65rem; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--border-strong); cursor: pointer; flex: none; }
 .swatch:hover { transform: scale(1.12); }
 .swatch[data-c="yellow"] { background: #ffe066; } .swatch[data-c="green"] { background: #7ddc92; } .swatch[data-c="blue"] { background: #79b8ff; }
-.swatch[data-c="pink"] { background: #ff8fbd; } .swatch[data-c="purple"] { background: #b897ff; } .swatch[data-c="orange"] { background: #ffb26b; }
+.swatch[data-c="pink"] { background: #ff8fbd; } .swatch[data-c="purple"] { background: #232d47; } .swatch[data-c="orange"] { background: #ffb26b; }
 .swatch-none { background: var(--surface) !important; display: grid; place-items: center; color: var(--muted); }
 .chapter-pager { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3.5rem; }
 .chapter-pager a { flex: 1; display: flex; flex-direction: column; gap: .15rem; padding: 1rem 1.2rem; border-radius: var(--radius-lg); border: 1px solid var(--border); background: var(--surface); color: var(--text) !important; }

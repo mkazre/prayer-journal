@@ -17,7 +17,7 @@
         <h2 style="font-size:1.3rem">Lesson notes</h2>
         <div class="card mb-3">
             <?php foreach ($notes as $n) : ?>
-                <div class="journal-entry"><a class="fw-700" href="<?= site_url('study/' . $course['slug'] . '/lesson/' . $n['lesson_id']) ?>"><?= esc($n['lesson_title']) ?></a><div class="body"><?= esc($n['body']) ?></div></div>
+                <div class="journal-entry"><a class="fw-700" href="<?= site_url('study/' . $course['slug'] . '/lesson/' . $n['lesson_id']) ?>"><?= esc($n['lesson_title']) ?></a><div class="body"><?= scripture_links(esc($n['body'])) ?></div></div>
             <?php endforeach ?>
         </div>
     <?php endif ?>
@@ -27,7 +27,7 @@
             <?php foreach ($journal as $j) : [$kLabel, $kIcon, $kClass] = $kinds[$j['kind']] ?? $kinds['note']; ?>
                 <div class="journal-entry row items-start row-nowrap">
                     <span class="kind-icon <?= $kClass ?>"><?= icon($kIcon) ?></span>
-                    <div class="grow"><div class="text-xs text-muted"><?= esc((string) $j['lesson_title']) ?> · <?= esc($kLabel) ?></div><div class="body"><?= esc($j['body']) ?></div>
+                    <div class="grow"><div class="text-xs text-muted"><?= esc((string) $j['lesson_title']) ?> · <?= esc($kLabel) ?></div><div class="body"><?= scripture_links(esc($j['body'])) ?></div>
                         <?php if ($j['is_answered']) : ?><span class="badge badge-success"><?= icon('check') ?>Answered</span><?php endif ?></div>
                 </div>
             <?php endforeach ?>

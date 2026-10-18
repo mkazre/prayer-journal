@@ -87,8 +87,8 @@ $pct   = ($stats['prayers'] ?? 0) > 0 ? (int) round($stats['answered'] / $stats[
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="body"><?= esc($e['body']) ?></div>
-                                    <?php if ($e['answer_note']) : ?><div class="alert alert-success mb-1" style="padding:.6rem .9rem"><?= icon('sparkles') ?><div><strong>Testimony:</strong> <?= esc($e['answer_note']) ?></div></div><?php endif ?>
+                                    <div class="body"><?= scripture_links(esc($e['body'])) ?></div>
+                                    <?php if ($e['answer_note']) : ?><div class="alert alert-success mb-1" style="padding:.6rem .9rem"><?= icon('sparkles') ?><div><strong>Testimony:</strong> <?= scripture_links(esc($e['answer_note'])) ?></div></div><?php endif ?>
                                     <div class="row gap-sm text-xs text-muted">
                                         <?php if ($e['scripture']) : ?><span><?= scripture_links(esc($e['scripture'])) ?></span><?php endif ?>
                                         <?php if ($e['lesson_title']) : ?><a href="<?= site_url('study/' . $e['course_slug'] . '/lesson/' . $e['lesson_id']) ?>"><?= icon('feather') ?> <?= esc($e['lesson_title']) ?></a><?php endif ?>

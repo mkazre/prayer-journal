@@ -87,7 +87,7 @@ $link     = static fn ($p) => $p ? site_url('bible/' . Scripture::slug((int) $p[
 
 <div class="verse-actions no-print" id="verse-actions" role="toolbar" aria-label="Verse actions">
     <span class="sel-label" id="sel-label"></span>
-    <?php foreach ($colors as $c) : ?><button class="swatch" type="button" data-c="<?= $c ?>" data-hl-btn="<?= $c ?>" aria-label="Highlight <?= $c ?>"></button><?php endforeach ?>
+    <?php foreach ($colors as $c) : ?><button class="swatch" type="button" data-c="<?= $c ?>" data-hl-btn="<?= $c ?>" aria-label="Highlight <?= esc(strtolower(\App\Modules\Bible\Controllers\BibleController::COLOR_LABELS[$c] ?? $c), 'attr') ?>"></button><?php endforeach ?>
     <button class="swatch swatch-none" type="button" data-hl-btn="" aria-label="Remove highlight"><?= icon('x') ?></button>
     <span class="menu-sep" style="width:1px;height:1.6rem;margin:0 .2rem"></span>
     <button class="btn btn-ghost btn-icon btn-sm" type="button" id="act-bookmark" aria-label="Bookmark"><?= icon('bookmark') ?></button>

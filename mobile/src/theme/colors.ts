@@ -50,7 +50,7 @@ export const light: Palette = {
   dangerSoft: '#FBE9E7',
   onBrand: '#FFFFFF',
   overlay: 'rgba(18,21,28,0.45)',
-  highlight: { yellow: '#FFF1A8', green: '#CFF2D8', blue: '#D3E6FF', pink: '#FFD6E7', purple: '#E6D9FB' },
+  highlight: { yellow: '#FFF1A8', green: '#CFF2D8', blue: '#D3E6FF', pink: '#FFD6E7', purple: '#CDD3E3' },
 };
 
 export const dark: Palette = {
@@ -73,7 +73,7 @@ export const dark: Palette = {
   dangerSoft: '#341714',
   onBrand: '#FFFFFF',
   overlay: 'rgba(0,0,0,0.6)',
-  highlight: { yellow: '#5A4E12', green: '#1D4A2D', blue: '#1D3557', pink: '#55203A', purple: '#3B2A5E' },
+  highlight: { yellow: '#5A4E12', green: '#1D4A2D', blue: '#1D3557', pink: '#55203A', purple: '#3A4A73' },
 };
 
 export const radius = { sm: 8, md: 12, lg: 16, xl: 22, pill: 999 };

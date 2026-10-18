@@ -138,7 +138,7 @@ export default function BibleChapterScreen({ route, navigation }: any) {
           </View>
           <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
             {COLORS.map((col) => (
-              <Pressable key={col} onPress={() => highlight(col)} style={[styles.swatch, { backgroundColor: c.highlight[col], borderColor: c.border }]} accessibilityLabel={`Highlight ${col}`} />
+              <Pressable key={col} onPress={() => highlight(col)} style={[styles.swatch, { backgroundColor: c.highlight[col], borderColor: c.border }]} accessibilityLabel={`Highlight ${col === 'purple' ? 'navy' : col}`} />
             ))}
             <Pressable onPress={() => highlight(null)} style={[styles.swatch, { borderColor: c.border, alignItems: 'center', justifyContent: 'center' }]} accessibilityLabel="Remove highlight">
               <Icon name="slash" size={16} color={c.muted} />

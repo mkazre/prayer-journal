@@ -35,10 +35,10 @@ class Scripture
         'Major Prophets'     => [23, 27],
         'Minor Prophets'     => [28, 39],
         'The Gospels'        => [40, 43],
-        'Early Church'       => [44, 44],
+        'The Early Church'   => [44, 44],
         "Paul's Letters"     => [45, 57],
-        'General Letters'    => [58, 65],
-        'Prophecy'           => [66, 66],
+        'The General Letters' => [58, 65],
+        'Prophecy & Revelation' => [66, 66],
     ];
 
     /**
@@ -143,7 +143,10 @@ class Scripture
 
     public static function url(array $ref): string
     {
-        return site_url('bible/' . self::slug($ref['book']) . '/' . $ref['chapter']) . ($ref['verse_start'] ? '#v' . $ref['verse_start'] : '');
+        // "#v6-7" makes the reader scroll to and highlight the whole range.
+        $hash = $ref['verse_start'] ? '#v' . $ref['verse_start'] . ($ref['verse_end'] !== $ref['verse_start'] ? '-' . $ref['verse_end'] : '') : '';
+
+        return site_url('bible/' . self::slug($ref['book']) . '/' . $ref['chapter']) . $hash;
     }
 
     /**
@@ -237,13 +240,14 @@ class Scripture
             $names = array_keys(self::lookup());
             // Longest first so "1 John" wins over "John".
             usort($names, static fn ($a, $b) => mb_strlen($b) <=> mb_strlen($a));
-            $alts = array_map(static function (string $n): string {
-                $q = preg_quote($n, '/');
-                // "1 cor" also matches "1Cor" and "1 Cor."
-                return preg_replace('/^([123])\\\\? /', '$1\s?', str_replace('\ ', ' ', $q));
+            $roman = ['1' => 'i', '2' => 'ii', '3' => 'iii'];
+            $alts  = array_map(static function (string $n) use ($roman): string {
+                $q = str_replace('\ ', ' ', preg_quote($n, '/'));
+                // "1 cor" also matches "1Cor", "1 Cor." and "I Cor" (so "I John" is not read as "John").
+                return preg_replace_callback('/^([123]) /', static fn ($m) => '(?:' . $m[1] . '\s?|' . $roman[$m[1]] . ' )', $q);
             }, $names);
             $alts = array_map(static fn ($a) => str_replace(' ', '\s+', $a), $alts);
-            self::$pattern = '/(?<![\w\/#])(?:' . implode('|', $alts) . ')\.?\s?\d{1,3}:\d{1,3}(?:\s*[-–]\s*\d{1,3})?(?![\d:])/iu';
+            self::$pattern = '/(?<![\w\/#])(?:' . implode('|', $alts) . ')\.?\s?\d{1,3}\s*:\s*\d{1,3}(?:\s*[-–]\s*\d{1,3})?(?![\d:])/iu';
         }
 
         return self::$pattern;

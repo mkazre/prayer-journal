@@ -37,6 +37,26 @@ final class LibrariesTest extends CIUnitTestCase
         $this->assertSame(1, substr_count($html, 'bible/'));
     }
 
+    public function testReferenceUrlsCarryVerseRanges(): void
+    {
+        $this->assertStringEndsWith('bible/philippians/4#v6-7', Scripture::url(Scripture::parse('Phil 4:6-7')));
+    }
+
+    public function testLinkifyHandlesJournalStyleReferences(): void
+    {
+        $links = static function (string $text): array {
+            preg_match_all('/data-ref="([^"]+)"/', html_entity_decode(Scripture::linkify(esc($text)), ENT_QUOTES | ENT_HTML5), $m);
+
+            return $m[1];
+        };
+
+        $this->assertSame(['Psalms 23:3', 'Proverbs 6:22', 'Zechariah 4:6'], $links("Psalm 23:3\nProverbs 6:22\nZechariah 4:6"));
+        // Roman numerals name the numbered book rather than falling through to "John".
+        $this->assertSame(['1 John 1:9', '2 Kings 2:9', '3 John 1:4'], $links('I John 1:9, II Kings 2:9 and III John 1:4'));
+        $this->assertSame(['Jeremiah 29:11'], $links('Jeremiah 29 : 11'));
+        $this->assertSame([], $links('Meet Mark at 10:30, then Job interview'));
+    }
+
     public function testCleanKjvRemovesEditorialMarkup(): void
     {
         $this->assertSame('And God said, Let there be light.', Scripture::cleanKjv('And God {said}, Let there be light{marginal: Heb. light}.'));
